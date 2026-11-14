@@ -30,7 +30,7 @@ const val ANILIST_ADDON_ID = "anilist"
  * Bumped whenever [ANILIST_CATALOGS] changes, so cached home sections keyed on
  * [HomeCatalogDefinition.cacheKey] are invalidated.
  */
-private const val ANILIST_CATALOG_VERSION = "4"
+private const val ANILIST_CATALOG_VERSION = "5"
 
 /** Page size used for the home-row preview fetch. */
 private const val DEFAULT_HOME_PER_PAGE = 25

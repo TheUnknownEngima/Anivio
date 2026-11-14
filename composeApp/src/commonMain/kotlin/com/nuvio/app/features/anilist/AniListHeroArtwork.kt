@@ -27,6 +27,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Upgrades hero artwork for AniList items.
@@ -57,6 +59,7 @@ object AniListHeroArtwork {
      * being written to disk, while this timestamp stops a failed lookup re-firing on every publish.
      */
     private val attemptsRef = atomic<Map<String, Long>>(emptyMap())
+    private val resolveMutex = Mutex()
 
     fun snapshot(): Map<String, MetaPreview> = cacheRef.value
 
@@ -89,7 +92,7 @@ object AniListHeroArtwork {
         val now = EpisodeReleaseDatePlatform.nowEpochMs()
         return items.any { item ->
             val key = item.stableKey()
-            isAniListId(item.id) &&
+            !item.type.equals("manga", ignoreCase = true) && isAniListId(item.id) &&
                 (cache[key] == null || needsArtworkRefresh(cache.getValue(key))) &&
                 now - (attempts[key] ?: 0L) > RETRY_AFTER_MS
         }
@@ -101,38 +104,32 @@ object AniListHeroArtwork {
      * again instead of keeping the low-resolution AniList cover for a week.
      */
     suspend fun resolve(items: List<MetaPreview>) {
-        val cache = cacheRef.value
-        val attempts = attemptsRef.value
-        val now = EpisodeReleaseDatePlatform.nowEpochMs()
-        val pending = items.filter { item ->
-            val key = item.stableKey()
-            isAniListId(item.id) &&
-                (cache[key] == null || needsArtworkRefresh(cache.getValue(key))) &&
-                now - (attempts[key] ?: 0L) > RETRY_AFTER_MS
-        }
-        if (pending.isEmpty()) return
-
-        val results = coroutineScope {
-            pending.map { item -> async { item to enrich(item) } }.awaitAll()
-        }
-        val resolved = results.filter { (item, enriched) -> enriched != item }
-        val unresolved = results.filter { (item, enriched) -> enriched == item }
-
-        if (resolved.isNotEmpty()) {
-            cacheRef.value = cacheRef.value + resolved.associate { (item, enriched) ->
-                item.stableKey() to enriched
+        resolveMutex.withLock {
+            val cache = cacheRef.value
+            val attempts = attemptsRef.value
+            val now = EpisodeReleaseDatePlatform.nowEpochMs()
+            val pending = items.distinctBy { it.stableKey() }.filter { item ->
+                val key = item.stableKey()
+                !item.type.equals("manga", ignoreCase = true) && isAniListId(item.id) &&
+                    (cache[key] == null || needsArtworkRefresh(cache.getValue(key))) &&
+                    now - (attempts[key] ?: 0L) > RETRY_AFTER_MS
             }
-        }
-        if (unresolved.isNotEmpty()) {
-            attemptsRef.update { current ->
-                val next = current + unresolved.associate { (item, _) -> item.stableKey() to now }
-                if (next.size <= MAX_ATTEMPT_ENTRIES) {
-                    next
-                } else {
-                    next.entries.toList()
-                        .takeLast(MAX_ATTEMPT_ENTRIES)
-                        .associate { it.key to it.value }
+            if (pending.isEmpty()) return
+
+            val results = coroutineScope {
+                pending.map { item -> async { item to enrich(item) } }.awaitAll()
+            }
+            val resolved = results.filter { (item, enriched) -> enriched != item }
+            if (resolved.isNotEmpty()) {
+                cacheRef.update { current ->
+                    current + resolved.associate { (item, enriched) -> item.stableKey() to enriched }
                 }
+            }
+            // A partial success still needs a retry delay when no logo/backdrop exists.
+            attemptsRef.update { current ->
+                val next = current + pending.associate { item -> item.stableKey() to now }
+                if (next.size <= MAX_ATTEMPT_ENTRIES) next else next.entries.toList()
+                    .takeLast(MAX_ATTEMPT_ENTRIES).associate { it.key to it.value }
             }
         }
     }
@@ -191,21 +188,17 @@ object AniListHeroArtwork {
 
             // A sequel's season poster is season-specific; TVDB's series poster is the show's, so it
             // only applies to a first season or a film.
-            val seasonPoster = if (!isMovie && tvdbId != null && mappedSeason != null && mappedSeason > 1) {
-                TvdbClient.seasonPosterUrl(seriesId = tvdbId, seasonNumber = mappedSeason)
+            val seasonPoster = if (!isMovie && mappedSeason != null && mappedSeason > 1) {
+                tvdbId?.let { TvdbClient.seasonPosterUrl(seriesId = it, seasonNumber = mappedSeason) }
+                    ?: tmdbId?.let { TmdbArtworkSource.seasonPosterUrl(tmdbId = it, seasonNumber = mappedSeason) }
             } else {
                 null
             }
-            val seriesPosterApplies = isMovie || mappedSeason == null || mappedSeason <= 1
-
             item.copy(
                 // TVDB's 680x1000 portrait is the point of this path; AniList's ~460px cover is the
                 // last resort. A sequel's season poster is more specific, so it wins for later seasons.
-                poster = seasonPoster
-                    ?: tvdbArtwork.posterUrl?.takeIf { seriesPosterApplies }
-                    ?: anivioMedia?.posterUrl
-                    ?: tmdbArtwork.posterUrl
-                    ?: item.poster,
+                poster = seasonAwareHomePoster(item.poster, isMovie, mappedSeason, seasonPoster,
+                    tvdbArtwork.posterUrl, anivioMedia?.posterUrl, tmdbArtwork.posterUrl),
                 banner = tvdbArtwork.backgroundUrl
                     ?: tmdbArtwork.backdropUrl
                     ?: fanartArtwork.backgroundUrl
@@ -230,4 +223,17 @@ object AniListHeroArtwork {
     /** Cached hero entries created before an artwork source was available must be retried. */
     private fun needsArtworkRefresh(item: MetaPreview): Boolean =
         item.banner.isNullOrBlank() || item.logo.isNullOrBlank()
+}
+
+/** Keep exact-title artwork when a later or unmapped season has no matching season poster. */
+internal fun seasonAwareHomePoster(
+    original: String?, isMovie: Boolean, mappedSeason: Int?, seasonPoster: String?,
+    tvdbPoster: String?, titleSpecificPoster: String?, tmdbPoster: String?,
+): String? {
+    val genericPosterApplies = isMovie || mappedSeason == 1
+    return seasonPoster
+        ?: tvdbPoster?.takeIf { genericPosterApplies }
+        ?: titleSpecificPoster
+        ?: tmdbPoster?.takeIf { genericPosterApplies }
+        ?: original
 }

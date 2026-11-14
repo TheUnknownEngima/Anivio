@@ -131,6 +131,13 @@ object AnivioMetaSource {
             popularity = popularity?.toDouble(),
             imdbRating = averageScore?.takeIf { it > 0 }?.let { (it / 10.0).toString() },
             airingStatus = status?.replace('_', ' ')?.replaceFirstChar { it.uppercase() },
+            countryOfOrigin = countryOfOrigin,
+            mediaFormat = format,
+            episodeDurationMinutes = duration?.takeIf { it > 0 },
+            artworkColor = coverImage?.color,
+            banner = backgroundUrl,
+            description = description,
+            genres = genres,
         )
     }
 }

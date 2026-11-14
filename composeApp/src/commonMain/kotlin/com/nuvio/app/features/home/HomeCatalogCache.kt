@@ -20,6 +20,7 @@ import kotlinx.serialization.json.Json
  */
 internal object HomeCatalogCache {
     private const val VERSION = 2
+    private const val ARTWORK_VERSION = 2
 
     /** Old enough that the rows are more likely wrong than useful; refetched from scratch instead. */
     private const val MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
@@ -108,8 +109,10 @@ internal object HomeCatalogCache {
                         hasMore = row.hasMore,
                     )
                 },
-            heroArtwork = stored.heroArtwork.associate { entry -> entry.key to entry.item },
-            attemptedArtwork = stored.attemptedArtwork.associate { entry -> entry.key to entry.attemptedAtEpochMs },
+            heroArtwork = stored.heroArtwork.takeIf { stored.artworkVersion == ARTWORK_VERSION }.orEmpty()
+                .associate { entry -> entry.key to entry.item },
+            attemptedArtwork = stored.attemptedArtwork.takeIf { stored.artworkVersion == ARTWORK_VERSION }.orEmpty()
+                .associate { entry -> entry.key to entry.attemptedAtEpochMs },
             storedAtEpochMs = stored.storedAtEpochMs,
         )
     }
@@ -142,6 +145,7 @@ internal object HomeCatalogCache {
         return json.encodeToString(
             StoredHomeCatalogCache(
                 version = VERSION,
+                artworkVersion = ARTWORK_VERSION,
                 storedAtEpochMs = nowEpochMs,
                 rows = rows,
                 heroArtwork = heroArtwork.entries
@@ -179,6 +183,7 @@ internal data class HomeCatalogCacheSnapshot(
 @Serializable
 private data class StoredHomeCatalogCache(
     val version: Int = 0,
+    val artworkVersion: Int = 0,
     val storedAtEpochMs: Long = 0L,
     val rows: List<StoredHomeCatalogRow> = emptyList(),
     val heroArtwork: List<StoredHomeHeroArtwork> = emptyList(),

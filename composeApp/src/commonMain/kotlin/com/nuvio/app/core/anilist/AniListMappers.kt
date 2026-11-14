@@ -52,6 +52,10 @@ fun AniListMedia.toMetaPreview(): MetaPreview? {
         imdbRating = averageScore?.takeIf { it > 0 }?.let { (it / 10.0).toString() },
         genres = genres,
         airingStatus = status,
+        countryOfOrigin = countryOfOrigin,
+        mediaFormat = format,
+        episodeDurationMinutes = duration?.takeIf { it > 0 },
+        artworkColor = coverImage?.color,
     )
 }
 

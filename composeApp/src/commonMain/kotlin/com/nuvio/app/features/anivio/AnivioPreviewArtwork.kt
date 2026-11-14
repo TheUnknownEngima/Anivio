@@ -20,8 +20,14 @@ suspend fun enrichPreviewPostersWithAnivio(items: List<MetaPreview>): List<MetaP
             async {
                 if (!isAniListId(item.id)) return@async item
                 val mediaId = parseAniListMediaId(item.id) ?: return@async item
-                val poster = AnivioClient.mediaByAniListIdOrNull(mediaId)?.posterUrl
-                item.copy(poster = poster ?: item.poster)
+                val media = AnivioClient.mediaByAniListIdOrNull(mediaId)
+                item.copy(
+                    poster = media?.posterUrl ?: item.poster,
+                    countryOfOrigin = item.countryOfOrigin ?: media?.countryOfOrigin,
+                    mediaFormat = item.mediaFormat ?: media?.format,
+                    episodeDurationMinutes = item.episodeDurationMinutes ?: media?.duration?.takeIf { it > 0 },
+                    artworkColor = item.artworkColor ?: media?.coverImage?.color,
+                )
             }
         }.awaitAll()
     }

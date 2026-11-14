@@ -42,6 +42,26 @@ internal data class HomeDiscoveryContent(
     val horizon: List<MetaPreview>,
 )
 
+/** Artwork caches must never replace fresh season, country, duration or synopsis metadata. */
+internal fun MetaPreview.withResolvedDiscoveryArtwork(artwork: MetaPreview?): MetaPreview {
+    if (artwork == null || artwork.stableKey() != stableKey()) return this
+    return copy(
+        poster = artwork.poster?.takeIf(String::isNotBlank) ?: poster,
+        banner = artwork.banner?.takeIf(String::isNotBlank) ?: banner,
+        logo = artwork.logo?.takeIf(String::isNotBlank) ?: logo,
+    )
+}
+
+/** Discovery excludes donghua and short episodes; ordinary 12-episode seasons are unaffected. */
+internal fun MetaPreview.isHomeDiscoveryEligible(): Boolean {
+    if (type.equals("manga", ignoreCase = true)) return true
+    // Unknown origins are held out rather than letting unclassified donghua slip through.
+    val country = countryOfOrigin?.trim()?.uppercase() ?: return false
+    if (country.length != 2 || country.any { it !in 'A'..'Z' } || country == "CN") return false
+    if (mediaFormat?.trim()?.uppercase() == "TV_SHORT") return false
+    return episodeDurationMinutes?.let { it <= 0 || it >= 15 } ?: true
+}
+
 internal fun buildHomeDiscoveryContent(
     sections: List<HomeCatalogSection>,
     heroItems: List<MetaPreview>,
@@ -51,7 +71,7 @@ internal fun buildHomeDiscoveryContent(
 ): HomeDiscoveryContent {
     val heroKeys = heroItems.mapTo(mutableSetOf()) { it.stableKey() }
     val pool = sections.filterNot { it.key.endsWith(":upcoming") }
-        .flatMap { it.items }.distinctBy { it.stableKey() }
+        .flatMap { it.items }.filter { it.isHomeDiscoveryEligible() }.distinctBy { it.stableKey() }
     val unwatched = pool.filterNot {
         WatchingState.isPosterWatched(watchedKeys, it, fullyWatchedSeriesKeys)
     }
@@ -61,7 +81,7 @@ internal fun buildHomeDiscoveryContent(
         spotlight = spotlight,
         shuffle = candidates.filterNot { it.stableKey() == spotlight?.stableKey() }.take(16),
         horizon = if (hideUnreleased) emptyList() else sections.filter { it.key.endsWith(":upcoming") }
-            .flatMap { it.items }.distinctBy { it.stableKey() }
+            .flatMap { it.items }.filter { it.isHomeDiscoveryEligible() }.distinctBy { it.stableKey() }
             .sortedBy { it.rawReleaseDate?.takeIf(String::isNotBlank) ?: "9999" }.take(3),
     )
 }

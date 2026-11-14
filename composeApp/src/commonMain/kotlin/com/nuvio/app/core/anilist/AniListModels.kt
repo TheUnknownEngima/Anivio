@@ -46,6 +46,7 @@ data class AniListMedia(
     /** Manga only. */
     val volumes: Int? = null,
     val duration: Int? = null,
+    val countryOfOrigin: String? = null,
     /** 0-100; divided by 10 for the app's 0-10 rating display. */
     val averageScore: Int? = null,
     val popularity: Int? = null,
@@ -105,6 +106,7 @@ const val ANILIST_MEDIA_FIELDS: String = """
     status
     episodes
     duration
+    countryOfOrigin
     averageScore
     popularity
     isAdult

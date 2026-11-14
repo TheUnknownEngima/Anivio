@@ -9,4 +9,10 @@
     <string name="home_discovery_another">Show another pick</string>
     <string name="home_discovery_date_tba">Date to be announced</string>
     <string name="home_discovery_source">Discovery</string>
+    <string name="home_discovery_shuffle_hint">Something different, every shuffle.</string>
+    <string name="home_discovery_shuffle_action">Shuffle</string>
+    <string name="home_discovery_pick_badge">A fresh pick</string>
+    <string name="home_discovery_catalog_score">Catalog score</string>
+    <string name="home_discovery_minutes">%1$d min</string>
+    <string name="home_spotlight_featured">Featured pick</string>
 </resources>

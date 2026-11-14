@@ -28,6 +28,10 @@ data class MetaPreview(
     val ageRating: String? = null,
     val language: String? = null,
     val externalRatings: List<MetaExternalRating> = emptyList(),
+    val countryOfOrigin: String? = null,
+    val mediaFormat: String? = null,
+    val episodeDurationMinutes: Int? = null,
+    val artworkColor: String? = null,
 )
 
 fun MetaPreview.stableKey(): String = "$type:$id"

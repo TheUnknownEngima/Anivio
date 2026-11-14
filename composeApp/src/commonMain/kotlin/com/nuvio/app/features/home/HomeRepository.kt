@@ -349,6 +349,8 @@ object HomeRepository {
     }
 
     /** Writes the rows currently on screen, plus any hero artwork resolved for them, to disk. */
+    internal fun persistResolvedArtwork() = persistCache()
+
     private fun persistCache() {
         HomeCatalogCache.save(
             sections = cachedSections,

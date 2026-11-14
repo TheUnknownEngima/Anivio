@@ -186,6 +186,8 @@ object MalPublicAnimeProvider : PublicAnimeFallbackProvider {
             popularity = numListUsers?.toDouble() ?: popularity?.let { 1_000_000.0 / it.coerceAtLeast(1) },
             imdbRating = score?.takeIf { it > 0 }?.toString(),
             genres = genres.map { it.name },
+            mediaFormat = mediaType,
+            episodeDurationMinutes = episodeDurationSeconds?.takeIf { it > 0 }?.let { (it / 60).coerceAtLeast(1) },
         )
         return enrichPreviewPostersWithAnivio(listOf(preview)).first()
     }
