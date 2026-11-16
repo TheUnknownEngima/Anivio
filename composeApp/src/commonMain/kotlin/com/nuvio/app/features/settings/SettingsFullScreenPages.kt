@@ -17,6 +17,8 @@ import com.nuvio.app.features.details.MetaScreenSettingsRepository
 import com.nuvio.app.features.plugins.PluginRepository
 import com.nuvio.app.features.home.HomeCatalogSettingsRepository
 import com.nuvio.app.features.watchprogress.ContinueWatchingPreferencesRepository
+import nuvio.composeapp.generated.resources.settings_profile_customization
+import nuvio.composeapp.generated.resources.settings_profile_sharing
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.compose_settings_page_account
 import nuvio.composeapp.generated.resources.compose_settings_page_addons
@@ -160,7 +162,10 @@ fun PluginsSettingsScreen(
 @Composable
 fun AccountSettingsScreen(
     onBack: () -> Unit,
+    onNavigatePage: (String, String) -> Unit,
 ) {
+    val profileTitle = stringResource(nuvio.composeapp.generated.resources.Res.string.settings_profile_customization)
+    val shareTitle = stringResource(nuvio.composeapp.generated.resources.Res.string.settings_profile_sharing)
     NuvioScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
@@ -172,6 +177,7 @@ fun AccountSettingsScreen(
         }
         accountSettingsContent(
             isTablet = false,
+            onPageClick = { page -> onNavigatePage(page.name, if (page == SettingsPage.ProfileCustomization) profileTitle else shareTitle) },
         )
     }
 }

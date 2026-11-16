@@ -65,14 +65,14 @@ internal enum class SettingsPage(
     SystemSettings(Res.string.settings_section_system, SettingsCategory.Advanced, Root),
     Anivio(Res.string.settings_section_anivio, SettingsCategory.General, Root),
     AboutSettings(Res.string.compose_settings_root_about_section, SettingsCategory.About, Root),
-    ProfileCustomization(Res.string.settings_profile_customization, SettingsCategory.General, Anivio),
-    ProfileSharing(Res.string.settings_profile_sharing, SettingsCategory.General, Anivio),
     Layout(Res.string.settings_layout_title, SettingsCategory.General, Personalize),
     Account(
         titleRes = Res.string.compose_settings_page_account,
         category = SettingsCategory.Account,
         parentPage = YourSpace,
     ),
+    ProfileCustomization(Res.string.settings_profile_customization, SettingsCategory.Account, Account),
+    ProfileSharing(Res.string.settings_profile_sharing, SettingsCategory.Account, Account),
     About(
         titleRes = Res.string.compose_settings_page_about,
         category = SettingsCategory.About,
@@ -97,7 +97,7 @@ internal enum class SettingsPage(
     Reader(
         titleRes = Res.string.compose_settings_page_reader,
         category = SettingsCategory.General,
-        parentPage = Anivio,
+        parentPage = Playback,
     ),
     Appearance(
         titleRes = Res.string.compose_settings_page_appearance,

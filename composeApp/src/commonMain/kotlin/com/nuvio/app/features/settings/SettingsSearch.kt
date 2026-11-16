@@ -669,6 +669,15 @@ internal fun settingsSearchEntries(
         },
     )
     if (!isIos) {
+        addRow(
+            page = SettingsPage.PlaybackVideo,
+            key = "video-enhancement",
+            title = stringResource(Res.string.enhancement_title),
+            description = stringResource(Res.string.enhancement_description) + " Anime4K · FSRCNNX · GAN",
+            pageLabel = playbackPage,
+            section = stringResource(Res.string.enhancement_title),
+            icon = Icons.Rounded.Tune,
+        )
         addPlaybackRows(
             addRow = ::addRow,
             pageLabel = playbackPage,

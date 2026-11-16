@@ -155,9 +155,6 @@ internal fun LazyListScope.settingsRootContent(
                 androidx.compose.foundation.layout.Column {
                     SettingsGroup(isTablet) {
                         listOf(
-                            SettingsHubRow(SettingsPage.ProfileCustomization.titleRes, Res.string.settings_profile_customization_description, Icons.Rounded.Palette) { onSectionClick(SettingsPage.ProfileCustomization) },
-                            SettingsHubRow(SettingsPage.ProfileSharing.titleRes, Res.string.settings_profile_sharing_description, Icons.Rounded.People) { onSectionClick(SettingsPage.ProfileSharing) },
-                            SettingsHubRow(Res.string.compose_settings_page_reader, Res.string.compose_settings_root_reader_description, Icons.Rounded.MenuBook, onReaderClick),
                             SettingsHubRow(Res.string.compose_settings_root_downloads_title, Res.string.compose_settings_root_downloads_description, Icons.Rounded.CloudDownload, onDownloadsClick),
                         ).forEachIndexed { index, row ->
                             if (index > 0) SettingsGroupDivider(isTablet)
@@ -234,9 +231,6 @@ internal fun LazyListScope.settingsRootContent(
             row(Res.string.compose_settings_page_tracking, Res.string.compose_settings_root_tracking_description, Icons.Default.Sync, onTrackingClick)
         }
         SettingsPage.Anivio -> {
-            page(SettingsPage.ProfileCustomization, Res.string.settings_profile_customization_description, Icons.Rounded.Palette)
-            page(SettingsPage.ProfileSharing, Res.string.settings_profile_sharing_description, Icons.Rounded.People)
-            row(Res.string.compose_settings_page_reader, Res.string.compose_settings_root_reader_description, Icons.Rounded.MenuBook, onReaderClick)
             row(Res.string.compose_settings_root_downloads_title, Res.string.compose_settings_root_downloads_description, Icons.Rounded.CloudDownload, onDownloadsClick)
         }
         SettingsPage.SystemSettings -> {

@@ -1642,7 +1642,9 @@ internal fun MainAppContent(
                 }
                 entry<AccountSettingsRoute> { route ->
                     SettingsDestination(route, navController) { onBack ->
-                        AccountSettingsScreen(onBack = onBack)
+                        AccountSettingsScreen(onBack = onBack, onNavigatePage = { pageName, title ->
+                            navController.navigate(SettingsPageRoute(pageName, title))
+                        })
                     }
                 }
                 entry<AboutSettingsRoute> { route ->

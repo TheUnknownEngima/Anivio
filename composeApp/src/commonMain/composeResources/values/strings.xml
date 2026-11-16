@@ -540,7 +540,7 @@
     <string name="compose_settings_page_account">Account</string>
     <string name="compose_settings_page_addons">Addons</string>
     <string name="compose_settings_page_advanced">Advanced</string>
-    <string name="compose_settings_page_appearance">Layout</string>
+    <string name="compose_settings_page_appearance">Appearance</string>
     <string name="compose_settings_page_content_discovery">Content &amp; Discovery</string>
     <string name="compose_settings_page_continue_watching">Continue Watching</string>
     <string name="compose_settings_page_debrid">Connected Services</string>
@@ -551,7 +551,7 @@
     <string name="compose_settings_page_meta_screen">Detail Page</string>
     <string name="settings_appearance_section_detail_page">DETAIL PAGE</string>
     <string name="compose_settings_page_notifications">Notifications</string>
-    <string name="compose_settings_page_playback">Playback</string>
+    <string name="compose_settings_page_playback">Playback and Reader settings</string>
     <string name="compose_settings_page_plugins">Plugins</string>
     <string name="compose_settings_page_poster_customization">Poster Card Style</string>
     <string name="compose_settings_page_privacy_policy">Privacy Policy</string>

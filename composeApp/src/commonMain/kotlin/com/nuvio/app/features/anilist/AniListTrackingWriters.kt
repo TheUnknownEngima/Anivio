@@ -111,10 +111,8 @@ object AniListHistoryWriter : TrackingHistoryWriter {
             }
         }
 
-        val snapshot = AniListListRepository.snapshot().anime
         highestByMedia.forEach { (mediaId, episode) ->
-            val existing = snapshot.firstOrNull { entry -> entry.media?.id == mediaId }?.progress ?: 0
-            if (episode > existing) AniListMutations.setProgress(mediaId, episode)
+            if (!advanceAniListProgress(mediaId, episode)) notFound++
         }
 
         if (highestByMedia.isNotEmpty() || items.size > notFound) {
@@ -168,12 +166,7 @@ object AniListScrobbler : TrackingScrobbler {
         if (episode == null) {
             AniListMutations.setStatus(mediaId, AniListListStatus.COMPLETED)
         } else {
-            val existing = AniListListRepository.snapshot().anime
-                .firstOrNull { entry -> entry.media?.id == mediaId }
-                ?.progress
-                ?: 0
-            if (episode <= existing) return
-            AniListMutations.setProgress(mediaId, episode)
+            advanceAniListProgress(mediaId, episode)
         }
         AniListListRepository.refresh(forceRefresh = true)
     }

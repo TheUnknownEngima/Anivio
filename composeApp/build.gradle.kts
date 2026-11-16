@@ -611,6 +611,7 @@ kotlin {
                 implementation(libs.androidx.media3.decoder)
                 implementation(libs.androidx.media3.session)
                 implementation(libs.androidx.media3.common)
+                implementation(libs.androidx.media3.effect)
                 implementation(libs.androidx.media3.container)
                 implementation(libs.androidx.media3.extractor)
                 implementation(libs.mpv.android.lib)
@@ -676,6 +677,13 @@ kotlin {
 
 configurations.matching { it.name == "iosMainImplementation" }.configureEach {
     project.dependencies.add(name, libs.ktor.client.darwin)
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    if (name == "testAndroidHostTest") {
+        inputs.dir("src/androidMain/assets/video_enhancement")
+        outputs.file(layout.buildDirectory.file("enhancement-gpu-fixtures.json"))
+    }
 }
 
 configurations.all {

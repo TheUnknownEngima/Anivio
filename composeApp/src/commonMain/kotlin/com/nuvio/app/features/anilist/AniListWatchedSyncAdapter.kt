@@ -59,12 +59,8 @@ object AniListWatchedSyncAdapter : TrackingWatchedProvider {
         }
         if (highestByMedia.isEmpty()) return
 
-        val snapshot = AniListListRepository.snapshot().anime
         highestByMedia.forEach { (mediaId, episode) ->
-            val existing = snapshot.firstOrNull { entry -> entry.media?.id == mediaId }?.progress ?: 0
-            if (episode > existing) {
-                AniListMutations.setProgress(mediaId = mediaId, progress = episode)
-            }
+            advanceAniListProgress(mediaId, episode)
         }
         AniListListRepository.refresh(forceRefresh = true)
     }

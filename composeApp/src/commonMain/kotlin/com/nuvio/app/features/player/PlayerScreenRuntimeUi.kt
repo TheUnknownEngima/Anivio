@@ -333,13 +333,9 @@ private fun PlayerScreenRuntime.RenderPlayerControls(displayedPositionMs: Long, 
                 refreshTracks()
                 showAudioModal = true
             },
-            onVideoSettingsClick = if (isIos) {
-                {
-                    showVideoSettingsModal = true
-                    controlsVisible = true
-                }
-            } else {
-                null
+            onVideoSettingsClick = {
+                showVideoSettingsModal = true
+                controlsVisible = true
             },
             onSwitchEngineClick = if (playerController?.playbackEngine != null) {
                 { showSwitchEngineConfirm = true }
@@ -565,6 +561,7 @@ private fun PlayerScreenRuntime.RenderPlayerModals(displayedPositionMs: Long) {
         onAutoSyncReload = { loadSubtitleAutoSyncCues(force = true) },
         onSubtitleModalDismissed = { showSubtitleModal = false },
         showVideoSettingsModal = showVideoSettingsModal,
+        videoEnhancementAvailable = playerController?.playbackEngine == AndroidPlaybackEngine.ExoPlayer,
         playerSettings = playerSettingsUiState,
         onVideoSettingsChanged = {
             playerController?.configureIosVideoOutput(PlayerSettingsRepository.uiState.value)

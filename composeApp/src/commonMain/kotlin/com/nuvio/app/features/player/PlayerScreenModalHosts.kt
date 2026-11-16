@@ -45,6 +45,7 @@ internal fun PlayerScreenModalHosts(
     onAutoSyncReload: () -> Unit,
     onSubtitleModalDismissed: () -> Unit,
     showVideoSettingsModal: Boolean,
+    videoEnhancementAvailable: Boolean,
     playerSettings: PlayerSettingsUiState,
     onVideoSettingsChanged: () -> Unit,
     onVideoSettingsModalDismissed: () -> Unit,
@@ -148,7 +149,12 @@ internal fun PlayerScreenModalHosts(
         onDismiss = onSubtitleModalDismissed,
     )
 
-    IosVideoSettingsModal(
+    if (!com.nuvio.app.isIos) AndroidVideoSettingsModal(
+        visible = showVideoSettingsModal,
+        settings = playerSettings,
+        available = videoEnhancementAvailable,
+        onDismiss = onVideoSettingsModalDismissed,
+    ) else IosVideoSettingsModal(
         visible = showVideoSettingsModal,
         settings = playerSettings,
         onSettingsChanged = onVideoSettingsChanged,

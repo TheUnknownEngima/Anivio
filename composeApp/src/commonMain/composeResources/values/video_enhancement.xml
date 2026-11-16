@@ -1,0 +1,37 @@
+<resources>
+    <string name="enhancement_credits_title">Video enhancement credits</string>
+    <string name="enhancement_credit_anime4k_title">Anime4K</string>
+    <string name="enhancement_credit_anime4k_body">On-device anime restoration and upscaling shaders by bloc97 and contributors. Copyright © 2019–2021 bloc97.</string>
+    <string name="enhancement_credit_anime4k_license">MIT License. Copyright and permission notices are included with the bundled shader sources.</string>
+    <string name="enhancement_credit_fsrcnnx_title">FSRCNNX</string>
+    <string name="enhancement_credit_fsrcnnx_body">The 2× FSRCNNX shader by igv powers the alternative upscaling mode. Copyright © 2017–2021 igv.</string>
+    <string name="enhancement_credit_fsrcnnx_license">GNU Lesser General Public License v3.0 or later. Shader source and the LGPL/GPL license texts are included with the app.</string>
+    <string name="enhancement_title">Video enhancement</string>
+    <string name="enhancement_mode">Processing mode</string>
+    <string name="enhancement_description">Enhance anime on your device. Higher GPU use can increase heat and battery consumption.</string>
+    <string name="enhancement_off">Off</string>
+    <string name="enhancement_off_description">Play the original picture.</string>
+    <string name="enhancement_light">Anime4K · Light restoration</string>
+    <string name="enhancement_light_description">Restore lines without upscaling. Uses the small CNN model.</string>
+    <string name="enhancement_a">Anime4K · Mode A</string>
+    <string name="enhancement_a_description">Stronger restoration for blurry lines, with up to 2× upscaling.</string>
+    <string name="enhancement_b">Anime4K · Mode B</string>
+    <string name="enhancement_b_description">Softer restoration for mild blur and aliasing, with up to 2× upscaling.</string>
+    <string name="enhancement_c">Anime4K · Mode C</string>
+    <string name="enhancement_c_description">Denoise and upscale up to 2× without a separate restoration pass.</string>
+    <string name="enhancement_fsrcnnx">FSRCNNX · 2×</string>
+    <string name="enhancement_fsrcnnx_description">Upscale detail using the 8-channel model. Requires more GPU work.</string>
+    <string name="enhancement_gan">Anime4K GAN · Experimental</string>
+    <string name="enhancement_gan_description">Small 2× GAN model. May change textures or introduce artifacts.</string>
+    <string name="enhancement_limits">For the built-in Android ExoPlayer. SDR video only; enabling enhancement disables hardware tunneling for this playback session. Small models are used to limit GPU load. Upscaling follows the display size, capped at 1080p. Unsupported or slow effects return to the original picture.</string>
+    <string name="enhancement_preparing">Checking GPU and preparing enhancement…</string>
+    <string name="enhancement_active">Enhancement is active.</string>
+    <string name="enhancement_unsupported">This GPU or video decoder cannot run the effect. Playing the original picture.</string>
+    <string name="enhancement_hdr">HDR video uses the original picture to preserve its colors.</string>
+    <string name="enhancement_not_needed">No upscaling is needed at this display size.</string>
+    <string name="enhancement_memory">The effect exceeds the GPU memory limit. Playing the original picture.</string>
+    <string name="enhancement_failed">Enhancement could not run. Playing the original picture; select a mode to retry.</string>
+    <string name="enhancement_too_slow">Enhancement could not keep up. Playing the original picture.</string>
+    <string name="enhancement_recovered">Enhancement was turned off after interrupted playback. You can enable it again.</string>
+    <string name="enhancement_unavailable">Enhancement is available with the built-in ExoPlayer on Android.</string>
+</resources>

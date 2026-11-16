@@ -27,6 +27,7 @@ actual object PlayerSettingsStorage {
     private const val autoSwitchPlaybackEngineOnErrorKey = "auto_switch_playback_engine_on_error"
     private const val showDetailedLoadingStatusKey = "show_detailed_loading_status"
     private const val showPauseOverlayKey = "show_pause_overlay"
+    private const val videoEnhancementKey = "video_enhancement"
     private const val exoChaptersEnabledKey = "exo_chapters_enabled"
     private const val preloadNextEpisodeKey = "preload_next_episode"
     private const val preferSameServerKey = "prefer_same_server"
@@ -119,6 +120,7 @@ actual object PlayerSettingsStorage {
         showDetailedLoadingStatusKey,
         showPauseOverlayKey,
         exoChaptersEnabledKey,
+        videoEnhancementKey,
         preloadNextEpisodeKey,
         preferSameServerKey,
         defaultServerKeyKey,
@@ -229,6 +231,11 @@ actual object PlayerSettingsStorage {
     }
     actual fun saveShowPauseOverlay(value: Boolean) {
         preferences?.edit()?.putBoolean(ProfileScopedKey.of(showPauseOverlayKey), value)?.apply()
+    }
+
+    actual fun loadVideoEnhancement(): String? = preferences?.getString(ProfileScopedKey.of(videoEnhancementKey), null)
+    actual fun saveVideoEnhancement(value: String) {
+        preferences?.edit()?.putString(ProfileScopedKey.of(videoEnhancementKey), value)?.apply()
     }
 
     actual fun loadExoChaptersEnabled(): Boolean? = preferences?.let { prefs ->
@@ -1353,6 +1360,7 @@ actual object PlayerSettingsStorage {
         loadAutoSwitchPlaybackEngineOnError()?.let { put(autoSwitchPlaybackEngineOnErrorKey, encodeSyncBoolean(it)) }
         loadShowDetailedLoadingStatus()?.let { put(showDetailedLoadingStatusKey, encodeSyncBoolean(it)) }
         loadShowPauseOverlay()?.let { put(showPauseOverlayKey, encodeSyncBoolean(it)) }
+        loadVideoEnhancement()?.let { put(videoEnhancementKey, encodeSyncString(it)) }
         loadExoChaptersEnabled()?.let { put(exoChaptersEnabledKey, encodeSyncBoolean(it)) }
         loadPreloadNextEpisode()?.let { put(preloadNextEpisodeKey, encodeSyncBoolean(it)) }
         loadPreferSameServer()?.let { put(preferSameServerKey, encodeSyncBoolean(it)) }
@@ -1447,6 +1455,7 @@ actual object PlayerSettingsStorage {
         payload.decodeSyncBoolean(autoSwitchPlaybackEngineOnErrorKey)?.let(::saveAutoSwitchPlaybackEngineOnError)
         payload.decodeSyncBoolean(showDetailedLoadingStatusKey)?.let(::saveShowDetailedLoadingStatus)
         payload.decodeSyncBoolean(showPauseOverlayKey)?.let(::saveShowPauseOverlay)
+        payload.decodeSyncString(videoEnhancementKey)?.let(::saveVideoEnhancement)
         payload.decodeSyncBoolean(exoChaptersEnabledKey)?.let(::saveExoChaptersEnabled)
         payload.decodeSyncBoolean(preloadNextEpisodeKey)?.let(::savePreloadNextEpisode)
         payload.decodeSyncBoolean(preferSameServerKey)?.let(::savePreferSameServer)

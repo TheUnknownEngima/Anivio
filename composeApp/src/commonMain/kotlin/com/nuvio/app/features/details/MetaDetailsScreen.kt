@@ -110,6 +110,9 @@ import com.nuvio.app.features.details.components.DetailCastSection
 import com.nuvio.app.features.details.components.DetailContentTab
 import com.nuvio.app.features.details.components.DantotsuCommentsComposer
 import com.nuvio.app.features.details.components.DantotsuCommentsSection
+import com.nuvio.app.core.ui.ArtworkBackdrop
+import com.nuvio.app.core.ui.rememberArtworkBackdrop
+import com.nuvio.app.features.details.components.CinematicHeaderBackdrop
 import com.nuvio.app.features.details.components.DetailFloatingHeader
 import com.nuvio.app.features.details.components.DetailHero
 import com.nuvio.app.features.details.components.DetailMetaInfo
@@ -976,6 +979,9 @@ fun MetaDetailsScreen(
                     val contentMaxWidth = detailTabletContentMaxWidth(maxWidth, isTablet)
                     val backdropUrl = meta.background ?: meta.poster
                     val backgroundMode = metaScreenSettingsUiState.backgroundMode
+                    val cinematicBackground = backgroundMode == MetaScreenBackgroundMode.Cinematic && !backdropUrl.isNullOrBlank()
+                    val cinematicBackdrop = rememberArtworkBackdrop(backdropUrl.takeIf { cinematicBackground }, enabled = deferredMetaWorkAllowed)
+                    val cinematicScreenHeight = maxHeight
                     val dominantColorEnabled = backgroundMode == MetaScreenBackgroundMode.DominantColor &&
                         deferredMetaWorkAllowed &&
                         !backdropUrl.isNullOrBlank()
@@ -1030,20 +1036,8 @@ fun MetaDetailsScreen(
                         Box(Modifier.fillMaxSize().detailsContentReveal(metaScreenSettingsUiState.posterTransitionEnabled)) {
                             when (backgroundMode) {
                                 MetaScreenBackgroundMode.Normal -> Unit
-                                MetaScreenBackgroundMode.Cinematic -> if (deferredMetaWorkAllowed && backdropUrl != null) {
-                                    AsyncImage(
-                                        model = backdropUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .blur(30.dp),
-                                        contentScale = ContentScale.Crop,
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(colorScheme.background.copy(alpha = 0.92f)),
-                                    )
+                                MetaScreenBackgroundMode.Cinematic -> if (cinematicBackground) {
+                                    ArtworkBackdrop(image = cinematicBackdrop)
                                 }
                                 MetaScreenBackgroundMode.DominantColor -> if (deferredMetaWorkAllowed) {
                                     Box(
@@ -1078,6 +1072,7 @@ fun MetaDetailsScreen(
                                         },
                                         heroTrailerMuted = heroTrailerMuted,
                                         heroGradientColor = dominantBackdropColor.takeIf { dominantColorEnabled },
+                                        cinematicBackground = cinematicBackground,
                                         onBackdropLoaded = { painter, imageBitmap ->
                                             dominantBackdropPainter = painter
                                             dominantBackdropImageBitmap = imageBitmap
@@ -1157,7 +1152,7 @@ fun MetaDetailsScreen(
                                 }
                             }
 
-                            if (backgroundMode.usesBackdropBackground && deferredMetaWorkAllowed && heroHeightPx.intValue > 0) {
+                            if (dominantColorEnabled && deferredMetaWorkAllowed && heroHeightPx.intValue > 0) {
                                 val blendColor = dominantBackdropColor.takeIf { dominantColorEnabled }
                                     ?: colorScheme.background
                                 Box(
@@ -1187,6 +1182,9 @@ fun MetaDetailsScreen(
                             isSaved = isSaved,
                             isHeroCollapsed = isHeroCollapsed,
                             backgroundColor = dominantBackdropColor.takeIf { dominantColorEnabled },
+                            headerBackground = if (cinematicBackground) {
+                                { CinematicHeaderBackdrop(cinematicBackdrop, cinematicScreenHeight) }
+                            } else null,
                             onBack = {
                                 if (detailContentTab == DetailContentTab.COMMENTS) {
                                     detailContentTab = DetailContentTab.INFO
@@ -1678,6 +1676,7 @@ private fun DetailHeaderOverlay(
     isSaved: Boolean,
     isHeroCollapsed: State<Boolean>,
     backgroundColor: Color?,
+    headerBackground: (@Composable () -> Unit)?,
     onBack: () -> Unit,
     onToggleSaved: () -> Unit,
     isNotifySubscribed: Boolean,
@@ -1712,6 +1711,7 @@ private fun DetailHeaderOverlay(
         isSaved = isSaved,
         progress = headerProgress,
         backgroundColor = backgroundColor,
+        background = headerBackground,
         onBack = onBack,
         onToggleSaved = onToggleSaved,
         isNotifySubscribed = isNotifySubscribed,

@@ -36,6 +36,7 @@ data class PlayerSettingsUiState(
     val showDetailedLoadingStatus: Boolean = false,
     val showPauseOverlay: Boolean = true,
     val exoChaptersEnabled: Boolean = true,
+    val videoEnhancement: VideoEnhancement = VideoEnhancement.Off,
     val preloadNextEpisode: Boolean = true,
     val preferSameServer: Boolean = true,
     val defaultServerKey: String = "",
@@ -128,6 +129,7 @@ object PlayerSettingsRepository {
     private var showDetailedLoadingStatus: Boolean = false
     private var showPauseOverlay: Boolean = true
     private var exoChaptersEnabled: Boolean = true
+    private var videoEnhancement = VideoEnhancement.Off
     private var preloadNextEpisode: Boolean = true
     private var preferSameServer: Boolean = true
     private var defaultServerKey: String = ""
@@ -218,6 +220,7 @@ object PlayerSettingsRepository {
         showDetailedLoadingStatus = false
         showPauseOverlay = true
         exoChaptersEnabled = true
+        videoEnhancement = VideoEnhancement.Off
         preloadNextEpisode = true
         preferSameServer = true
         defaultServerKey = ""
@@ -301,6 +304,7 @@ object PlayerSettingsRepository {
         showDetailedLoadingStatus = PlayerSettingsStorage.loadShowDetailedLoadingStatus() ?: false
         showPauseOverlay = PlayerSettingsStorage.loadShowPauseOverlay() ?: true
         exoChaptersEnabled = PlayerSettingsStorage.loadExoChaptersEnabled() ?: true
+        videoEnhancement = VideoEnhancement.fromStorage(PlayerSettingsStorage.loadVideoEnhancement())
         preloadNextEpisode = PlayerSettingsStorage.loadPreloadNextEpisode() ?: true
         preferSameServer = PlayerSettingsStorage.loadPreferSameServer() ?: true
         defaultServerKey = PlayerSettingsStorage.loadDefaultServerKey() ?: ""
@@ -1053,6 +1057,13 @@ object PlayerSettingsRepository {
         publish()
     }
 
+    fun setVideoEnhancement(value: VideoEnhancement) {
+        ensureLoaded()
+        videoEnhancement = value
+        PlayerSettingsStorage.saveVideoEnhancement(value.name)
+        publish()
+    }
+
     fun setExoChaptersEnabled(value: Boolean) {
         ensureLoaded()
         exoChaptersEnabled = value
@@ -1144,6 +1155,7 @@ object PlayerSettingsRepository {
             showDetailedLoadingStatus = showDetailedLoadingStatus,
             showPauseOverlay = showPauseOverlay,
             exoChaptersEnabled = exoChaptersEnabled,
+            videoEnhancement = videoEnhancement,
             preloadNextEpisode = preloadNextEpisode,
             preferSameServer = preferSameServer,
             defaultServerKey = defaultServerKey,

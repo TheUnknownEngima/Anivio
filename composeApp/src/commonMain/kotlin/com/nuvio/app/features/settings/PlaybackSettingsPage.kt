@@ -932,6 +932,7 @@ private fun PlaybackSettingsSection(
         if (!isIos && activePage == SettingsPage.PlaybackVideo) {
             val decoderEnabled = !autoPlayPlayerSettings.externalPlayerEnabled
             val exoOptionsEnabled = decoderEnabled && androidPlaybackEngine != AndroidPlaybackEngine.Libmpv
+            VideoEnhancementSettings(isTablet, autoPlayPlayerSettings.videoEnhancement, exoOptionsEnabled)
             val libmpvOptionsVisible = androidPlaybackEngine != AndroidPlaybackEngine.ExoPlayer
             val libmpvOptionsEnabled = decoderEnabled && libmpvOptionsVisible
             if (activePage == SettingsPage.PlaybackVideo) SettingsSection(
@@ -3797,6 +3798,7 @@ internal fun LazyListScope.playbackSettingsHubContent(
         SettingsPage.PlaybackLanguages,
         SettingsPage.PlaybackSubtitles,
         SettingsPage.PlaybackVideo,
+        SettingsPage.Reader,
     ) + if (P2pSettingsRepository.isVisible) listOf(SettingsPage.PlaybackP2p) else emptyList()
     item {
         SettingsGroup(isTablet = isTablet) {
@@ -3813,6 +3815,7 @@ internal fun LazyListScope.playbackSettingsHubContent(
                         SettingsPage.PlaybackLanguages -> Res.string.settings_playback_page_audio_description
                         SettingsPage.PlaybackSubtitles -> Res.string.settings_playback_page_subtitles_description
                         SettingsPage.PlaybackVideo -> Res.string.settings_playback_page_video_description
+                        SettingsPage.Reader -> Res.string.compose_settings_root_reader_description
                         else -> Res.string.settings_playback_page_p2p_description
                     }),
                     isTablet = isTablet,

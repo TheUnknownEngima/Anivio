@@ -20,6 +20,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import nuvio.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Serializable
 private data class Contributor(
@@ -97,6 +99,22 @@ private fun CommunityBody(isTablet: Boolean) {
                     }
                 }
             }
+        }
+        Text(stringResource(Res.string.enhancement_credits_title), style = MaterialTheme.typography.titleMedium)
+        SettingsGroup(isTablet) {
+            SettingsNavigationRow(
+                title = stringResource(Res.string.enhancement_credit_anime4k_title),
+                description = stringResource(Res.string.enhancement_credit_anime4k_body),
+                isTablet = isTablet,
+                onClick = { uri.openUri("https://github.com/bloc97/Anime4K") },
+            )
+            SettingsGroupDivider(isTablet)
+            SettingsNavigationRow(
+                title = stringResource(Res.string.enhancement_credit_fsrcnnx_title),
+                description = stringResource(Res.string.enhancement_credit_fsrcnnx_body),
+                isTablet = isTablet,
+                onClick = { uri.openUri("https://github.com/igv/FSRCNN-TensorFlow/releases/tag/1.1") },
+            )
         }
         SettingsGroup(isTablet) {
             SettingsNavigationRow(title = "Anivio on GitHub", description = "Contribute, report an issue or follow development", isTablet = isTablet, onClick = { uri.openUri("https://github.com/mdtahseen7/Anivio") })

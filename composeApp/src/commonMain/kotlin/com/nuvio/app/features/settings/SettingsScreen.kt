@@ -765,6 +765,7 @@ private fun MobileSettingsScreen(
                 SettingsPage.ProfileSharing -> profileSharingSettingsContent(isTablet = false)
                 SettingsPage.Account -> accountSettingsContent(
                     isTablet = false,
+                    onPageClick = onPageChange,
                 )
                 SettingsPage.About -> {
                     if (AppFeaturePolicy.aboutPageEnabled) {
@@ -1222,6 +1223,7 @@ private fun TabletSettingsScreen(
                     SettingsPage.ProfileSharing -> profileSharingSettingsContent(isTablet = true)
                     SettingsPage.Account -> accountSettingsContent(
                         isTablet = true,
+                        onPageClick = ::openInlinePage,
                     )
                     SettingsPage.About -> {
                         if (AppFeaturePolicy.aboutPageEnabled) {

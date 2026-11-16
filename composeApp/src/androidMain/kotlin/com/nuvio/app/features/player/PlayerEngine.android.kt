@@ -13,6 +13,8 @@ import android.os.Build
 import android.os.SystemClock
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.util.AttributeSet
+import androidx.compose.runtime.collectAsState
+import com.nuvio.app.features.player.enhancement.AndroidEnhancementController
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
@@ -118,8 +120,10 @@ actual fun PlatformPlayerSurface(
     onSnapshot: (PlayerPlaybackSnapshot) -> Unit,
     onError: (String?) -> Unit,
 ) {
+    val playerContext = LocalContext.current
     val playerSettings = remember {
         PlayerSettingsRepository.ensureLoaded()
+        AndroidEnhancementController.recoverInterruptedSession(playerContext)
         PlayerSettingsRepository.uiState.value
     }
     val playerSourceKey = listOf(
@@ -266,6 +270,7 @@ private fun ExoPlayerSurface(
         initialPositionRequestKey.orEmpty(),
     )
     val playbackDiagnostics = remember(playerSourceKey) { PlaybackDiagnostics() }
+    val enhancementReloadState = remember(playerSourceKey) { mutableListOf<Pair<androidx.media3.common.PlaybackParameters, Float>>() }
     var subtitleDelayMs by remember(playerSourceKey) { mutableStateOf(0) }
     var selectedExternalSubtitleMimeType by remember(playerSourceKey) { mutableStateOf<String?>(null) }
     val latestSubtitleDelayMs = rememberUpdatedState(subtitleDelayMs)
@@ -277,6 +282,13 @@ private fun ExoPlayerSurface(
     var decoderPriorityOverride by remember(playerSourceKey) { mutableStateOf<Int?>(null) }
     var fallbackStartPositionMs by remember(playerSourceKey) { mutableStateOf<Long?>(null) }
     val effectiveDecoderPriority = decoderPriorityOverride ?: playerSettings.decoderPriority
+    val enhancementSettings by PlayerSettingsRepository.uiState.collectAsState()
+    var enhancementPipelineRequested by remember(playerSourceKey) { mutableStateOf(enhancementSettings.videoEnhancement != VideoEnhancement.Off) }
+    var enhancementPipelineBlocked by remember(playerSourceKey) { mutableStateOf(false) }
+    val useEnhancementPipeline = enhancementPipelineRequested && !enhancementPipelineBlocked
+    val enhancementController = remember(playerSourceKey, effectiveDecoderPriority, useEnhancementPipeline) {
+        AndroidEnhancementController(context, useEnhancementPipeline)
+    }
 
     val initialMediaItem = remember(playerSourceKey, externalSubtitles) {
         Log.d(TAG, "externalSubtitles: count=${externalSubtitles.size} " +
@@ -357,6 +369,7 @@ private fun ExoPlayerSurface(
         normalizedStreamType,
         useYoutubeChunkedPlayback,
         effectiveDecoderPriority,
+        useEnhancementPipeline,
         initialPositionRequestKey,
     ) {
         val renderersFactory = SubtitleOffsetRenderersFactory(
@@ -378,7 +391,7 @@ private fun ExoPlayerSurface(
         val trackSelector = DefaultTrackSelector(context).apply {
             var parameters = buildUponParameters()
                 .setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true)
-            if (playerSettings.tunnelingEnabled) {
+            if (playerSettings.tunnelingEnabled && !useEnhancementPipeline) {
                 parameters = parameters.setTunnelingEnabled(true)
             }
             val captioningManager = context.getSystemService(Context.CAPTIONING_SERVICE)
@@ -438,6 +451,12 @@ private fun ExoPlayerSurface(
                 .build()
         }
 
+        enhancementReloadState.firstOrNull()?.let { (parameters, volume) ->
+            player.playbackParameters = parameters
+            player.volume = volume
+        }
+        enhancementReloadState.clear()
+        enhancementController.attach(player)
         player.applySubtitleTrackPreferences(
             preferredLanguage = playerSettings.preferredSubtitleLanguage,
             useForcedSubtitles = playerSettings.subtitleStyle.useForcedSubtitles,
@@ -525,6 +544,30 @@ private fun ExoPlayerSurface(
         Log.d(TAG, "$reason: preserving audio track index=${selection.index} id=${selection.id}")
     }
 
+    fun preserveSubtitleSelectionForReload() {
+        pendingSubtitleTrackIndex.clear()
+        pendingSubtitleTrackIndex.add(exoPlayer.captureSelectedTrack(C.TRACK_TYPE_TEXT)?.index ?: -1)
+    }
+
+    fun preserveEnhancementPlaybackForReload() {
+        preserveAudioSelectionForReload("video enhancement")
+        preserveSubtitleSelectionForReload()
+        enhancementReloadState.clear()
+        enhancementReloadState += exoPlayer.playbackParameters to exoPlayer.volume
+    }
+
+    LaunchedEffect(exoPlayer, enhancementSettings.videoEnhancement) {
+        if (enhancementSettings.videoEnhancement != VideoEnhancement.Off && !useEnhancementPipeline) {
+            // Establish the processing path before prepare; preserve playback on the one-time rebuild.
+            preserveEnhancementPlaybackForReload()
+            fallbackStartPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+            enhancementPipelineBlocked = false
+            enhancementPipelineRequested = true
+        } else {
+            enhancementController.select(enhancementSettings.videoEnhancement)
+        }
+    }
+
     DisposableEffect(exoPlayer) {
         PlayerPictureInPictureManager.registerPausePlaybackCallback {
             exoPlayer.pause()
@@ -561,6 +604,14 @@ private fun ExoPlayerSurface(
 
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
+                if (enhancementController.isEffectFailure(error)) {
+                    preserveEnhancementPlaybackForReload()
+                    fallbackStartPositionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+                    enhancementController.fail(EnhancementStatus.Failed)
+                    enhancementPipelineBlocked = true
+                    latestOnError.value(null)
+                    return
+                }
                 syncPlayerViewKeepScreenOn()
                 Log.e(
                     PLAYER_DIAGNOSTIC_TAG,
@@ -733,7 +784,14 @@ private fun ExoPlayerSurface(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             playerViewRef?.releaseLibassOverlay()
-            exoPlayer.release()
+            try {
+                exoPlayer.release()
+            } catch (error: Exception) {
+                Log.w(TAG, "Player cleanup failed", error)
+                enhancementController.fail(EnhancementStatus.Failed)
+            } finally {
+                enhancementController.close()
+            }
         }
     }
 

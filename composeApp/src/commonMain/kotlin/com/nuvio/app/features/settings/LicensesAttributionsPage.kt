@@ -150,6 +150,26 @@ private fun LicensesAttributionsBody(
                 item = platformLicenseItem(),
                 isTablet = isTablet,
             )
+            if (!isIos) {
+                val enhancementItems = listOf(
+                    LicenseItem(
+                        titleRes = Res.string.enhancement_credit_anime4k_title,
+                        bodyRes = Res.string.enhancement_credit_anime4k_body,
+                        licenseRes = Res.string.enhancement_credit_anime4k_license,
+                        link = "https://github.com/bloc97/Anime4K",
+                    ),
+                    LicenseItem(
+                        titleRes = Res.string.enhancement_credit_fsrcnnx_title,
+                        bodyRes = Res.string.enhancement_credit_fsrcnnx_body,
+                        licenseRes = Res.string.enhancement_credit_fsrcnnx_license,
+                        link = "https://github.com/igv/FSRCNN-TensorFlow/releases/tag/1.1",
+                    ),
+                )
+                enhancementItems.forEach { item ->
+                    PlainStackDivider()
+                    LicenseRow(item = item, isTablet = isTablet)
+                }
+            }
         }
     }
 }

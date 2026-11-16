@@ -7,6 +7,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.People
+import nuvio.composeapp.generated.resources.settings_profile_customization
+import nuvio.composeapp.generated.resources.settings_profile_customization_description
+import nuvio.composeapp.generated.resources.settings_profile_sharing
+import nuvio.composeapp.generated.resources.settings_profile_sharing_description
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -63,9 +70,21 @@ import org.jetbrains.compose.resources.stringResource
 
 internal fun LazyListScope.accountSettingsContent(
     isTablet: Boolean,
+    onPageClick: (SettingsPage) -> Unit,
 ) {
     item {
         AccountSettingsBody(isTablet = isTablet)
+    }
+    item {
+        SettingsGroup(isTablet) {
+            SettingsNavigationRow(title = stringResource(Res.string.settings_profile_customization),
+                description = stringResource(Res.string.settings_profile_customization_description),
+                icon = Icons.Rounded.Palette, isTablet = isTablet, onClick = { onPageClick(SettingsPage.ProfileCustomization) })
+            SettingsGroupDivider(isTablet)
+            SettingsNavigationRow(title = stringResource(Res.string.settings_profile_sharing),
+                description = stringResource(Res.string.settings_profile_sharing_description),
+                icon = Icons.Rounded.People, isTablet = isTablet, onClick = { onPageClick(SettingsPage.ProfileSharing) })
+        }
     }
 }
 

@@ -14,6 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.unit.Dp
+import com.nuvio.app.core.ui.ArtworkBackdrop
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -54,6 +58,7 @@ fun DetailFloatingHeader(
     isSaved: Boolean,
     progress: Float,
     backgroundColor: Color? = null,
+    background: (@Composable () -> Unit)? = null,
     onBack: () -> Unit,
     onToggleSaved: () -> Unit,
     isNotifySubscribed: Boolean = false,
@@ -93,8 +98,9 @@ fun DetailFloatingHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .clipToBounds()
-                .background(surfaceColor),
+                .then(if (background == null) Modifier.background(surfaceColor) else Modifier),
         ) {
+            if (background != null) Box(Modifier.matchParentSize()) { background() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,4 +223,9 @@ private fun DetailFloatingHeaderAction(
             tint = MaterialTheme.colorScheme.onBackground,
         )
     }
+}
+
+@Composable
+internal fun CinematicHeaderBackdrop(image: ImageBitmap?, screenHeight: Dp, alignment: Alignment = Alignment.Center) {
+    ArtworkBackdrop(image, alignment = alignment, modifier = Modifier.wrapContentHeight(align = Alignment.Top, unbounded = true).height(screenHeight))
 }
