@@ -192,6 +192,7 @@ internal fun MetaDetails.seriesPrimaryAction(
         preferFurthestEpisode = preferFurthestEpisode,
         showUnairedNextUp = showUnairedNextUp,
         defaultVideoId = defaultVideoId,
+        seasonForDisplay = { seasonForDisplay(it) },
     )?.toLegacySeriesPrimaryAction()
 
 internal fun MetaVideo.playLabel(): String =

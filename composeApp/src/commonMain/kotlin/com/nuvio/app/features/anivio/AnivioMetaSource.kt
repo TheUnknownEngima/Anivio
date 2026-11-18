@@ -9,6 +9,7 @@ import com.nuvio.app.core.anivio.logoUrl
 import com.nuvio.app.core.anivio.posterUrl
 import com.nuvio.app.core.anilist.stripAniListMarkup
 import com.nuvio.app.features.anilist.parseAniListMediaId
+import com.nuvio.app.features.anime.animeDisplaySeason
 import com.nuvio.app.features.details.MetaDetails
 import com.nuvio.app.features.details.MetaCompany
 import com.nuvio.app.features.details.MetaLink
@@ -73,6 +74,7 @@ object AnivioMetaSource {
         episodes: List<AnivioEpisode>,
         extras: AnivioMediaExtras?,
     ): MetaDetails {
+        val displayTitle = title?.english ?: title?.romaji ?: title?.native ?: id
         val relatedTitles = extras?.relations.orEmpty()
             .filter { it.relationType?.uppercase() in STORY_RELATIONS }
             .sortedBy { STORY_RELATIONS.indexOf(it.relationType?.uppercase()) }
@@ -87,7 +89,7 @@ object AnivioMetaSource {
         return MetaDetails(
             id = id,
             type = type,
-            name = title?.english ?: title?.romaji ?: title?.native ?: id,
+            name = displayTitle,
             poster = posterUrl,
             background = backgroundUrl,
             logo = logoUrl,
@@ -115,7 +117,13 @@ object AnivioMetaSource {
             moreLikeThis = moreLikeThis,
             moreLikeThisSource = MoreLikeThisSource.ANIVIO.takeIf { moreLikeThis.isNotEmpty() },
             relatedTitles = relatedTitles,
-            videos = buildAnivioEpisodeVideos(id = id, type = type, episodeCount = this.episodes, episodes = episodes),
+            videos = buildAnivioEpisodeVideos(
+                id = id,
+                type = type,
+                episodeCount = this.episodes,
+                episodes = episodes,
+                displaySeasonNumber = animeDisplaySeason(displayTitle),
+            ),
         )
     }
 
@@ -148,6 +156,7 @@ internal fun buildAnivioEpisodeVideos(
     type: String,
     episodeCount: Int?,
     episodes: List<AnivioEpisode>,
+    displaySeasonNumber: Int? = null,
 ): List<MetaVideo> {
     if (type.equals("movie", ignoreCase = true)) return emptyList()
 
@@ -167,6 +176,7 @@ internal fun buildAnivioEpisodeVideos(
             released = episode?.airDate,
             thumbnail = episode?.image?.large ?: episode?.image?.medium ?: episode?.image?.small,
             season = 1,
+            displaySeasonNumber = displaySeasonNumber,
             episode = number,
             overview = episode?.overview,
             runtime = episode?.runtime,

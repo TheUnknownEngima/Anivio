@@ -73,6 +73,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.nuvio.app.features.anime.animeEpisodeSeasonForDisplay
+import com.nuvio.app.features.details.MetaDetailsRepository
+import com.nuvio.app.features.details.seasonForDisplay
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -164,6 +167,10 @@ fun StreamsScreen(
         DownloadsRepository.ensureLoaded()
     }
     val isEpisode = seasonNumber != null && episodeNumber != null
+    val displaySeason = remember(parentMetaType, parentMetaId, title, seasonNumber) {
+        MetaDetailsRepository.peek(parentMetaType, parentMetaId)?.seasonForDisplay(seasonNumber)
+            ?: animeEpisodeSeasonForDisplay(parentMetaId, title, seasonNumber)
+    }
     val clipboardManager = LocalClipboardManager.current
     val streamLinkCopiedText = stringResource(Res.string.streams_link_copied)
     val noDirectStreamLinkText = stringResource(Res.string.streams_no_direct_link)
@@ -359,7 +366,7 @@ fun StreamsScreen(
                 poster = poster,
                 background = background,
                 episodeThumbnail = episodeThumbnail,
-                seasonNumber = seasonNumber,
+                seasonNumber = displaySeason,
                 episodeNumber = episodeNumber,
                 episodeTitle = episodeTitle,
                 uiState = uiState,
@@ -381,7 +388,7 @@ fun StreamsScreen(
                 title = title,
                 logo = logo,
                 heroArtwork = heroArtwork,
-                seasonNumber = seasonNumber,
+                seasonNumber = displaySeason,
                 episodeNumber = episodeNumber,
                 episodeTitle = episodeTitle,
                 blurEpisodeThumbnail = blurEpisodeThumbnail,

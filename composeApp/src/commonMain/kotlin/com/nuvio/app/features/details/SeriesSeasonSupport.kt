@@ -1,5 +1,7 @@
 package com.nuvio.app.features.details
 
+import com.nuvio.app.features.anime.animeEpisodeSeasonForDisplay
+
 internal const val SPECIALS_SEASON_NUMBER = 0
 
 internal val metaVideoSeasonEpisodeComparator: Comparator<MetaVideo> =
@@ -16,6 +18,10 @@ internal fun normalizeSeasonNumber(seasonNumber: Int?): Int =
     } else {
         seasonNumber
     }
+
+internal fun MetaDetails.seasonForDisplay(seasonNumber: Int?): Int? =
+    videos.firstOrNull { it.season == seasonNumber }?.displaySeasonNumber
+        ?: animeEpisodeSeasonForDisplay(id, name, seasonNumber)
 
 internal fun seasonSortKey(seasonNumber: Int?): Int =
     if (seasonNumber == null || seasonNumber <= SPECIALS_SEASON_NUMBER) {

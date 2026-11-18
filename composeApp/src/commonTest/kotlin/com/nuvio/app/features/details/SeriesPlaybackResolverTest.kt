@@ -9,6 +9,47 @@ import kotlin.test.assertNotNull
 
 class SeriesPlaybackResolverTest {
     @Test
+    fun seriesPrimaryAction_keeps_the_saved_anime_episode_when_displaying_a_sequel_season() {
+        val id = "anilist:199111"
+        val videoId = "$id:1:1"
+        val meta = MetaDetails(
+            id = id,
+            type = "series",
+            name = "Grand Blue Dreaming Season 3",
+            videos = listOf(MetaVideo(
+                id = videoId,
+                title = "Episode 1",
+                season = 1,
+                episode = 1,
+                displaySeasonNumber = 3,
+            )),
+        )
+        val entry = WatchProgressEntry(
+            contentType = "series",
+            parentMetaId = id,
+            parentMetaType = "series",
+            videoId = videoId,
+            title = meta.name,
+            seasonNumber = 1,
+            episodeNumber = 1,
+            lastPositionMs = 5_000L,
+            durationMs = 10_000L,
+            lastUpdatedEpochMs = 100L,
+            isCompleted = false,
+        )
+
+        val action = assertNotNull(meta.seriesPrimaryAction(
+            entries = listOf(entry),
+            watchedItems = emptyList(),
+            todayIsoDate = "2026-11-18",
+        ))
+        assertEquals("Resume S3E1", action.label)
+        assertEquals(videoId, action.videoId)
+        assertEquals(1, action.seasonNumber)
+        assertEquals(5_000L, action.resumePositionMs)
+    }
+
+    @Test
     fun seriesPrimaryAction_uses_latest_watched_episode_when_manual_mark_exists() {
         val meta = MetaDetails(
             id = "show",

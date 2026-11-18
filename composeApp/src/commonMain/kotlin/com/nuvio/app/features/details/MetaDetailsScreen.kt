@@ -1302,7 +1302,7 @@ fun MetaDetailsScreen(
                             }
                             EpisodeWatchedActionSheet(
                                 episode = selectedEpisode,
-                                seasonLabel = selectedEpisode.season?.let {
+                                seasonLabel = selectedEpisode.seasonForDisplay?.let {
                                     stringResource(Res.string.episodes_season, it)
                                 } ?: stringResource(Res.string.episodes_specials),
                                 isEpisodeWatched = isSelectedEpisodeWatched,
@@ -1339,7 +1339,7 @@ fun MetaDetailsScreen(
                         }
 
                         selectedSeasonForActions?.let { selectedSeason ->
-                            val seasonLabel = selectedSeasonLabel(selectedSeason)
+                            val seasonLabel = selectedSeasonLabel(meta.seasonForDisplay(selectedSeason) ?: selectedSeason)
                             val seasonEpisodes = remember(meta, selectedSeason, todayIsoDate) {
                                 meta.releasedEpisodesForSeason(
                                     seasonNumber = selectedSeason,
@@ -1553,13 +1553,13 @@ fun MetaDetailsScreen(
                     progressByVideoId = progressByVideoId,
                 )
             }
-            val seasonLabel = selectedEpisode.season?.let {
+            val seasonLabel = selectedEpisode.seasonForDisplay?.let {
                 stringResource(Res.string.episodes_season, it)
             } ?: stringResource(Res.string.episodes_specials)
             NuvioPosterZoomActionOverlay(
                 imageUrl = zoomAnchor.imageUrl ?: selectedEpisode.thumbnail ?: meta.background ?: meta.poster,
                 title = selectedEpisode.title,
-                subtitle = localizedSeasonEpisodeCode(selectedEpisode.season, selectedEpisode.episode) ?: seasonLabel,
+                subtitle = localizedSeasonEpisodeCode(selectedEpisode.seasonForDisplay, selectedEpisode.episode) ?: seasonLabel,
                 isWatched = isSelectedEpisodeWatched,
                 blurred = metaScreenSettingsUiState.blurUnwatchedEpisodes && !isSelectedEpisodeWatched,
                 depthSurface = NuvioCardDepthSurface.EpisodeCards,

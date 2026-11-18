@@ -233,7 +233,8 @@ private fun EpisodesListPanelContent(
                         label = if (season == 0) {
                             stringResource(Res.string.episodes_specials)
                         } else {
-                            stringResource(Res.string.episodes_season, season)
+                            val displaySeason = episodes.firstOrNull { it.season == season }?.seasonForDisplay ?: season
+                            stringResource(Res.string.episodes_season, displaySeason)
                         },
                         isSelected = selectedSeason == season,
                         onClick = {
@@ -341,7 +342,7 @@ private fun EpisodeRow(
     val episodeCode = when {
         episode.season != null && episode.episode != null -> stringResource(
             Res.string.compose_player_episode_code_full,
-            episode.season,
+            episode.seasonForDisplay ?: episode.season,
             episode.episode,
         )
         episode.episode != null -> stringResource(
@@ -473,7 +474,7 @@ private fun EpisodeStreamsPanelContent(
                         append(
                             stringResource(
                                 Res.string.compose_player_episode_code_full,
-                                episode.season,
+                                episode.seasonForDisplay ?: episode.season,
                                 episode.episode,
                             ),
                         )

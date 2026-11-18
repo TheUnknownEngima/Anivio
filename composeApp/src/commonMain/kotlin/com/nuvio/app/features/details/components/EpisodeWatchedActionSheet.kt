@@ -219,7 +219,7 @@ private fun EpisodeActionSheetHeader(
         Text(
             text = buildString {
                 localizedSeasonEpisodeCode(
-                    seasonNumber = episode.season,
+                    seasonNumber = episode.seasonForDisplay,
                     episodeNumber = episode.episode,
                 )?.let {
                     append(it)

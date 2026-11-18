@@ -124,6 +124,7 @@ fun decideSeriesPrimaryAction(
     preferFurthestEpisode: Boolean = true,
     showUnairedNextUp: Boolean = false,
     defaultVideoId: String? = null,
+    seasonForDisplay: (Int?) -> Int? = { it },
 ): WatchingSeriesPrimaryAction? {
     val resumeRecord = resumeProgressForSeries(
         content = content,
@@ -137,7 +138,7 @@ fun decideSeriesPrimaryAction(
     )
 
     if (shouldPreferResume(resumeRecord = resumeRecord, latestCompletedEpisode = latestCompletedEpisode)) {
-        return resumeRecord?.toResumeAction()
+        return resumeRecord?.toResumeAction(seasonForDisplay(resumeRecord.seasonNumber))
     }
 
     val nextEpisode = if (latestCompletedEpisode != null) {
@@ -165,11 +166,12 @@ fun decideSeriesPrimaryAction(
     }
 
     return nextEpisode?.let { episode ->
+        val displaySeason = seasonForDisplay(episode.seasonNumber)
         WatchingSeriesPrimaryAction(
             label = if (latestCompletedEpisode != null) {
-                upNextLabel(episode.seasonNumber, episode.episodeNumber)
+                upNextLabel(displaySeason, episode.episodeNumber)
             } else {
-                playLabel(episode.seasonNumber, episode.episodeNumber)
+                playLabel(displaySeason, episode.episodeNumber)
             },
             videoId = buildPlaybackVideoId(
                 content = content,
@@ -207,9 +209,9 @@ fun upNextLabel(seasonNumber: Int?, episodeNumber: Int?): String =
 fun resumeLabel(seasonNumber: Int?, episodeNumber: Int?): String =
     localizedResumeLabel(seasonNumber = seasonNumber, episodeNumber = episodeNumber)
 
-private fun WatchingProgressRecord.toResumeAction(): WatchingSeriesPrimaryAction =
+private fun WatchingProgressRecord.toResumeAction(displaySeason: Int?): WatchingSeriesPrimaryAction =
     WatchingSeriesPrimaryAction(
-        label = resumeLabel(seasonNumber = seasonNumber, episodeNumber = episodeNumber),
+        label = resumeLabel(seasonNumber = displaySeason, episodeNumber = episodeNumber),
         videoId = videoId,
         seasonNumber = seasonNumber,
         episodeNumber = episodeNumber,

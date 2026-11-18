@@ -135,7 +135,11 @@ data class MetaVideo(
      */
     val airingAtEpochMs: Long? = null,
     val streams: List<StreamItem> = emptyList(),
-)
+    /** Franchise season used by UI labels. [season] remains the playback and progress coordinate. */
+    val displaySeasonNumber: Int? = null,
+) {
+    val seasonForDisplay: Int? get() = displaySeasonNumber ?: season
+}
 
 data class MetaDetailsUiState(
     val isLoading: Boolean = false,

@@ -166,6 +166,7 @@ fun buildEnrichedEpisodes(
     episodeCount: Int?,
     enrichment: AnimeEnrichment,
     seriesPoster: String?,
+    seriesTitle: String? = null,
     fallbackTitle: (Int) -> String,
 ): List<MetaVideo> {
     val aniZip = enrichment.aniZip
@@ -179,6 +180,7 @@ fun buildEnrichedEpisodes(
         enrichment.airingScheduleByEpisode.keys.maxOrNull(),
         enrichment.nextAiringEpisodeNumber?.takeIf { it > 0 },
     ).maxOrNull() ?: return emptyList()
+    val displaySeason = animeDisplaySeason(seriesTitle, aniZip)
 
     return (1..total).map { number ->
         val episode = aniZip?.episodes?.get(number.toString())
@@ -200,6 +202,7 @@ fun buildEnrichedEpisodes(
                 ?: episode?.image?.takeIf { it.isNotBlank() },
             seasonPoster = seriesPoster,
             season = ANILIST_SEASON,
+            displaySeasonNumber = displaySeason,
             episode = number,
             overview = episode?.overviewText ?: tvdb?.overview ?: kitsu?.synopsis,
             runtime = episode?.runtimeMinutes ?: tvdb?.runtimeMinutes ?: kitsu?.runtimeMinutes,

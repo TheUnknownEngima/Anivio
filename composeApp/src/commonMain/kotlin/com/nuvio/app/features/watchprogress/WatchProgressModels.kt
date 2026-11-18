@@ -1,5 +1,6 @@
 package com.nuvio.app.features.watchprogress
 
+import com.nuvio.app.features.anime.animeEpisodeSeasonForDisplay
 import com.nuvio.app.features.cloud.CloudLibraryContentType
 import com.nuvio.app.features.cloud.cloudLibraryProviderPosterUrl
 import com.nuvio.app.features.details.MetaVideo
@@ -218,7 +219,11 @@ data class ContinueWatchingItem(
     val progressFraction: Float,
     val isReleaseAlert: Boolean = false,
     val isNewSeasonRelease: Boolean = false,
-)
+    val displaySeasonNumber: Int? = null,
+) {
+    val seasonForDisplay: Int?
+        get() = displaySeasonNumber ?: animeEpisodeSeasonForDisplay(parentMetaId, title, seasonNumber)
+}
 
 internal fun continueWatchingItemKey(item: ContinueWatchingItem): String {
     val season = item.seasonNumber ?: -1
@@ -267,7 +272,11 @@ internal fun WatchProgressEntry.toContinueWatchingItem(): ContinueWatchingItem {
         videoId = normalizedEntry.videoId,
         title = normalizedEntry.title,
         subtitle = buildContinueWatchingEpisodeSubtitle(
-            seasonNumber = normalizedEntry.seasonNumber,
+            seasonNumber = animeEpisodeSeasonForDisplay(
+                normalizedEntry.parentMetaId,
+                normalizedEntry.title,
+                normalizedEntry.seasonNumber,
+            ),
             episodeNumber = normalizedEntry.episodeNumber,
             episodeTitle = normalizedEntry.episodeTitle,
         ),
@@ -306,6 +315,8 @@ private fun WatchProgressEntry.cloudLibraryPosterFallbackUrl(): String? {
 internal fun WatchProgressEntry.toUpNextContinueWatchingItem(
     nextEpisode: MetaVideo,
 ): ContinueWatchingItem {
+    val displaySeason = nextEpisode.displaySeasonNumber
+        ?: animeEpisodeSeasonForDisplay(parentMetaId, title, nextEpisode.season)
     val alertState = calculateReleaseAlertState(
         seedLastUpdatedEpochMs = lastUpdatedEpochMs,
         seedSeasonNumber = seasonNumber,
@@ -327,7 +338,7 @@ internal fun WatchProgressEntry.toUpNextContinueWatchingItem(
         ),
         title = title,
         subtitle = buildContinueWatchingEpisodeSubtitle(
-            seasonNumber = nextEpisode.season,
+            seasonNumber = displaySeason,
             episodeNumber = nextEpisode.episode,
             episodeTitle = nextEpisode.title,
         ),
@@ -353,6 +364,7 @@ internal fun WatchProgressEntry.toUpNextContinueWatchingItem(
         progressFraction = 0f,
         isReleaseAlert = alertState.isReleaseAlert,
         isNewSeasonRelease = alertState.isNewSeasonRelease,
+        displaySeasonNumber = displaySeason,
     )
 }
 

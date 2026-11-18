@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nuvio.app.features.anime.animeEpisodeSeasonForDisplay
 import com.nuvio.app.features.p2p.P2pStreamingState
 import com.nuvio.app.features.p2p.formatP2pMegabytes
 import com.nuvio.app.features.p2p.formatP2pSpeed
@@ -29,6 +30,10 @@ import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.*
 import com.nuvio.app.core.ui.NuvioStatusModal
 import org.jetbrains.compose.resources.stringResource
+
+private val PlayerScreenRuntime.activeSeasonForDisplay: Int?
+    get() = playerMetaVideos.firstOrNull { it.season == activeSeasonNumber }?.displaySeasonNumber
+        ?: animeEpisodeSeasonForDisplay(parentMetaId, title, activeSeasonNumber)
 
 @Composable
 internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
@@ -236,7 +241,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
                 title = title,
                 logo = logo,
                 isEpisode = isEpisode,
-                seasonNumber = activeSeasonNumber,
+                seasonNumber = activeSeasonForDisplay,
                 episodeNumber = activeEpisodeNumber,
                 episodeTitle = activeEpisodeTitle,
                 pauseDescription = activePauseDescription ?: activeStreamSubtitle,
@@ -300,7 +305,7 @@ private fun PlayerScreenRuntime.RenderPlayerControls(displayedPositionMs: Long, 
             title = title,
             streamTitle = activeStreamTitle,
             providerName = activeProviderName,
-            seasonNumber = activeSeasonNumber,
+            seasonNumber = activeSeasonForDisplay,
             episodeNumber = activeEpisodeNumber,
             episodeTitle = activeEpisodeTitle,
             playbackSnapshot = playbackSnapshot,
@@ -611,6 +616,7 @@ private fun PlayerScreenRuntime.RenderPlayerModals(displayedPositionMs: Long) {
         parentMetaType = parentMetaType,
         parentMetaId = parentMetaId,
         activeSeasonNumber = activeSeasonNumber,
+        activeSeasonForDisplay = activeSeasonForDisplay,
         activeEpisodeNumber = activeEpisodeNumber,
         watchProgressByVideoId = watchProgressUiState.byVideoIdForContent(parentMetaId),
         watchedKeys = watchedUiState.watchedKeys,

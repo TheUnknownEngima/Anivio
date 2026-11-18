@@ -442,6 +442,7 @@ object AniListMetaSource {
                     airingScheduleByEpisode = airingScheduleByEpisode(),
                     anivioMedia = anivioMedia,
                     seriesPoster = coverImage?.extraLarge ?: coverImage?.large,
+                    seriesTitle = preferredTitle(),
                 )
             },
         )
@@ -606,6 +607,7 @@ object AniListMetaSource {
         airingScheduleByEpisode: Map<Int, Long>,
         anivioMedia: AnivioMedia?,
         seriesPoster: String?,
+        seriesTitle: String?,
     ): List<MetaVideo> = buildEnrichedEpisodes(
         videoIdPrefix = "$ANILIST_ID_PREFIX$mediaId",
         episodeCount = episodeCount,
@@ -617,6 +619,7 @@ object AniListMetaSource {
             airingScheduleByEpisode = airingScheduleByEpisode,
         ),
         seriesPoster = seriesPoster,
+        seriesTitle = seriesTitle,
         fallbackTitle = ::fallbackEpisodeTitle,
     )
 

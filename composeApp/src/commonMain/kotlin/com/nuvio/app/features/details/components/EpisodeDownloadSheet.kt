@@ -58,6 +58,7 @@ import com.nuvio.app.features.details.MetaVideo
 import com.nuvio.app.features.details.metaVideoSeasonEpisodeComparator
 import com.nuvio.app.features.details.normalizeSeasonNumber
 import com.nuvio.app.features.details.seasonSortKey
+import com.nuvio.app.features.details.seasonForDisplay
 import com.nuvio.app.features.downloads.DownloadSettingsRepository
 import com.nuvio.app.features.downloads.DownloadedSubtitle
 import com.nuvio.app.features.downloads.DownloadsPlatformDownloader
@@ -173,7 +174,7 @@ fun EpisodeDownloadSheet(
                         val label = if (season == 0) {
                             stringResource(Res.string.episodes_specials)
                         } else {
-                            stringResource(Res.string.episodes_season, season)
+                            stringResource(Res.string.episodes_season, meta.seasonForDisplay(season) ?: season)
                         }
                         val active = season == selectedSeason
                         Text(

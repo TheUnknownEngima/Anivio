@@ -124,7 +124,7 @@ private fun continueWatchingProgressPercent(progressFraction: Float): Int =
 private fun localizedContinueWatchingMetaLine(item: ContinueWatchingItem): String =
     when {
         item.seasonNumber != null && item.episodeNumber != null ->
-            stringResource(Res.string.compose_player_episode_code_full, item.seasonNumber, item.episodeNumber)
+            stringResource(Res.string.compose_player_episode_code_full, item.seasonForDisplay ?: item.seasonNumber, item.episodeNumber)
         item.isCloudLibraryItem() ->
             stringResource(Res.string.library_source_cloud)
         else ->
@@ -669,7 +669,7 @@ private fun ContinueWatchingCard(
         artworkUrl = imageUrl,
     )
     val episodeCode = if (item.seasonNumber != null && item.episodeNumber != null) {
-        stringResource(Res.string.streams_episode_badge, item.seasonNumber, item.episodeNumber)
+        stringResource(Res.string.streams_episode_badge, item.seasonForDisplay ?: item.seasonNumber, item.episodeNumber)
     } else {
         null
     }
@@ -1097,7 +1097,7 @@ private fun ContinueWatchingPosterCard(
                 Text(
                     text = stringResource(
                         Res.string.streams_episode_badge,
-                        item.seasonNumber,
+                        item.seasonForDisplay ?: item.seasonNumber,
                         item.episodeNumber,
                     ),
                     modifier = Modifier.padding(start = 6.dp),

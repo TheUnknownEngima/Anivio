@@ -83,6 +83,7 @@ import com.nuvio.app.features.details.metaVideoSeasonEpisodeComparator
 import com.nuvio.app.features.details.normalizeSeasonNumber
 import com.nuvio.app.features.details.preferredEpisodeNumberForSeason
 import com.nuvio.app.features.details.seasonSortKey
+import com.nuvio.app.features.details.seasonForDisplay
 import com.nuvio.app.features.watchprogress.CurrentDateProvider
 import com.nuvio.app.features.watchprogress.WatchProgressEntry
 import com.nuvio.app.features.watchprogress.buildPlaybackVideoId
@@ -285,6 +286,7 @@ fun DetailSeriesContent(
                                 )
                                 SeasonViewMode.Text -> SeasonTextChipScrollRow(
                                     seasons = seasons,
+                                    meta = meta,
                                     currentSeason = currentSeason,
                                     sizing = sizing,
                                     horizontalScrollPadding = horizontalScrollPadding,
@@ -296,6 +298,7 @@ fun DetailSeriesContent(
                     } else {
                         SeasonTextChipScrollRow(
                             seasons = seasons,
+                            meta = meta,
                             currentSeason = currentSeason,
                             sizing = sizing,
                             horizontalScrollPadding = horizontalScrollPadding,
@@ -323,12 +326,10 @@ fun DetailSeriesContent(
                     meta.type != "series" && seasons.size == 1 && seasonForContent <= 0 ->
                         stringResource(Res.string.details_videos)
 
-                    // Nothing to disambiguate with a single season — and AniList gives every anime
-                    // season its own entry, so this heading would otherwise always read "Season 1".
                     seasons.size == 1 && seasonForContent > 0 ->
                         stringResource(Res.string.details_episodes)
 
-                    else -> seasonForContent.label()
+                    else -> (meta.seasonForDisplay(seasonForContent) ?: seasonForContent).label()
                 }
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -524,6 +525,7 @@ private fun SeasonViewModeToggle(
 @Composable
 private fun SeasonTextChipScrollRow(
     seasons: List<Int>,
+    meta: MetaDetails,
     currentSeason: Int,
     sizing: SeriesContentSizing,
     horizontalScrollPadding: Dp,
@@ -576,7 +578,7 @@ private fun SeasonTextChipScrollRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = season.label(),
+                    text = (meta.seasonForDisplay(season) ?: season).label(),
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontSize = sizing.seasonChipTextSize,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
@@ -628,7 +630,7 @@ private fun SeasonPosterScrollRow(
     ) {
         items(seasons, key = { season -> season }) { season ->
             SeasonPosterButton(
-                label = season.label(),
+                label = (meta.seasonForDisplay(season) ?: season).label(),
                 imageUrl = groupedEpisodes[season]
                     .orEmpty()
                     .firstNotNullOfOrNull { episode -> episode.seasonPoster }
@@ -1527,7 +1529,7 @@ private fun Int.label(): String =
 private fun MetaVideo.episodeBadge(): String =
     when {
         episode != null || season != null ->
-            localizedSeasonEpisodeCode(seasonNumber = season, episodeNumber = episode).orEmpty()
+            localizedSeasonEpisodeCode(seasonNumber = seasonForDisplay, episodeNumber = episode).orEmpty()
         else -> runBlocking { getString(Res.string.details_episode_badge_file) }
     }
 

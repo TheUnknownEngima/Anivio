@@ -198,6 +198,7 @@ object MalPublicAnimeProvider : PublicAnimeFallbackProvider {
         enrichment: AnimeEnrichment,
     ): MetaDetails {
         val type = contentType(requestedType)
+        val displayTitle = alternativeTitles?.en?.takeIf(String::isNotBlank) ?: title
         val malPoster = mainPicture?.large ?: mainPicture?.medium
         // TVDB's series poster is the show's, so it is only correct for a first season or a film;
         // for a sequel MAL's own cover is the more accurate picture of this entry.
@@ -214,13 +215,14 @@ object MalPublicAnimeProvider : PublicAnimeFallbackProvider {
                 episodeCount = episodeCount,
                 enrichment = enrichment,
                 seriesPoster = poster,
+                seriesTitle = displayTitle,
                 fallbackTitle = { number -> "Episode $number" },
             )
         }
         return MetaDetails(
             id = canonicalId,
             type = type,
-            name = alternativeTitles?.en?.takeIf(String::isNotBlank) ?: title,
+            name = displayTitle,
             poster = poster,
             // MAL's `pictures` are alternate posters, not backdrops, so a 1920x1080 TVDB fanart is a
             // large upgrade behind the details header.
