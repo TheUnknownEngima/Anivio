@@ -2,6 +2,8 @@ package com.nuvio.app.features.details
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.nuvio.app.core.storage.ProfileScopedKey
+import com.nuvio.app.features.profiles.ProfileRepository
 
 actual object MangaReaderSettingsStorage {
     private const val preferencesName = "nuvio_manga_reader_settings"
@@ -14,12 +16,13 @@ actual object MangaReaderSettingsStorage {
     }
 
     actual fun loadPayload(): String? =
-        preferences?.getString(payloadKey, null)
+        preferences?.getString(ProfileScopedKey.of(payloadKey), null)
+            ?: preferences?.getString(payloadKey, null)?.takeIf { ProfileRepository.activeProfileId == 1 }
 
     actual fun savePayload(payload: String) {
         preferences
             ?.edit()
-            ?.putString(payloadKey, payload)
+            ?.putString(ProfileScopedKey.of(payloadKey), payload)
             ?.apply()
     }
 }

@@ -194,6 +194,7 @@ object ProfileSettingsSync {
             TrackingSettingsRepository.uiState.map { "tracking_settings" },
             EpisodeReleaseNotificationsRepository.uiState.map { "episode_release_alerts" },
             MangaReaderProgressRepository.changes.map { "manga_reader_progress" },
+            MangaReaderSettingsRepository.uiState.map { "manga_reader_settings" },
         )
 
         observeJob = scope.launch {

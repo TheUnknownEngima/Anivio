@@ -266,6 +266,7 @@ object ProviderCredentialSync {
         snapshot: ProviderCredentialSnapshot,
         expectedScope: ProviderCredentialScope,
     ) {
+        var anilistStateChanged = false
         snapshot.values.forEach { credential ->
             requireCurrentScope(expectedScope)
             val plain = try {
@@ -293,12 +294,22 @@ object ProviderCredentialSync {
                     PlayerSettingsRepository.setIntroDbApiKey(plain)
                 }
                 credential.provider == ProviderCredentialIds.ANILIST -> {
-                    if (plain.isNotBlank()) AniListAuthStorage.saveAccessToken(plain)
+                    if (AniListAuthStorage.loadAccessToken().orEmpty() != plain) anilistStateChanged = true
+                    AniListAuthStorage.saveAccessToken(plain.takeIf { it.isNotBlank() })
                 }
                 credential.provider == "${ProviderCredentialIds.ANILIST}:meta" -> {
+                    if (AniListAuthStorage.loadMetadataPayload().orEmpty() != plain) anilistStateChanged = true
                     if (plain.isNotBlank()) AniListAuthStorage.saveMetadataPayload(plain)
                     else AniListAuthStorage.saveMetadataPayload("")
                 }
+            }
+        }
+        if (anilistStateChanged) {
+            requireCurrentScope(expectedScope)
+            if (AniListAuthStorage.loadAccessToken().isNullOrBlank()) {
+                com.nuvio.app.features.anilist.AniListAuthRepository.onDisconnectRequested()
+            } else {
+                com.nuvio.app.features.anilist.AniListAuthRepository.onProfileChanged()
             }
         }
     }

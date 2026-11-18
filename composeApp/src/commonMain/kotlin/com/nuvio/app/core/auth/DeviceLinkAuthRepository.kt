@@ -203,8 +203,7 @@ object DeviceLinkAuthRepository {
 }
 
 internal fun formatDeviceLinkCode(value: String): String {
-    val normalized = value.uppercase().filter { it.isLetterOrDigit() }.take(6)
-    return if (normalized.length <= 3) normalized else "${normalized.take(3)}-${normalized.drop(3)}"
+    return value.uppercase().filter { it.isLetterOrDigit() }.take(12).chunked(3).joinToString("-")
 }
 
 @Serializable

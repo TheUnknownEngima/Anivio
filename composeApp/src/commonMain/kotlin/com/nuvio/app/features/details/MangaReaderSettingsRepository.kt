@@ -61,6 +61,10 @@ object MangaReaderSettingsRepository {
         loadFromDisk()
     }
 
+    fun onProfileChanged() {
+        loadFromDisk()
+    }
+
     fun setReadingMode(mode: MangaReadingMode) {
         ensureLoaded()
         if (_uiState.value.readingMode == mode) return

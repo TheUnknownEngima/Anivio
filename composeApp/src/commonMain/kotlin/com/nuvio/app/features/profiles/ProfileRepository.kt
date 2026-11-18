@@ -194,6 +194,7 @@ object ProfileRepository {
         DownloadsRepository.onProfileChanged()
         MangaDownloadsRepository.onProfileChanged()
         MangaReaderProgressRepository.onProfileChanged()
+        com.nuvio.app.features.details.MangaReaderSettingsRepository.onProfileChanged()
     }
 
     suspend fun pushProfiles(profiles: List<ProfilePushPayload>) {
