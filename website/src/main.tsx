@@ -413,6 +413,8 @@ function App() {
           <CommunityCollections session={session} />
         ) : path === "/link" ? (
           <DeviceLink session={session} />
+        ) : path === "/party" ? (
+          <PartyInvite key={route} code={new URLSearchParams(location.search).get("code")} />
         ) : (
           <PublicPage path={path} />
         )}
@@ -3288,6 +3290,56 @@ function Backup({ profiles }: { profiles: Profile[] }) {
         )}
       </section>
     </>
+  );
+}
+function PartyInvite({ code }: { code: string | null }) {
+  const [copyStatus, setCopyStatus] = useState("");
+  const partyCode = (code ?? "").replace(/[\s-]/g, "").toUpperCase();
+  const valid = /^[A-HJ-NP-Z2-9]{6}$/.test(partyCode);
+
+  return (
+    <section className="narrow shell section">
+      <h1>Join a Watch Party</h1>
+      <div className="surface">
+        {valid ? (
+          <>
+            <div className="device-preview">
+              <Users size={24} aria-hidden="true" />
+              <div>
+                <p>Party code</p>
+                <strong>{partyCode.slice(0, 3)} {partyCode.slice(3)}</strong>
+              </div>
+            </div>
+            <div className="hero-actions">
+              <a className="button primary" href={`anivio://party/${partyCode}`}>
+                Open Anivio <ArrowUpRight size={17} />
+              </a>
+              <button
+                type="button"
+                className="button ghost"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(partyCode);
+                    setCopyStatus("Party code copied.");
+                  } catch {
+                    setCopyStatus("Select the party code above to copy it.");
+                  }
+                }}
+              >
+                Copy code
+              </button>
+            </div>
+            <Message>{copyStatus}</Message>
+            <p>You can also enter the code in Settings → Watch Party in the app.</p>
+            <a className="text-link" href={`${repo}/releases/latest`} rel="noreferrer">
+              Download Anivio <ArrowUpRight size={15} />
+            </a>
+          </>
+        ) : (
+          <p>This link needs a valid party code. Ask the host for a new invite.</p>
+        )}
+      </div>
+    </section>
   );
 }
 function DeviceLink({ session }: { session: Session | null }) {

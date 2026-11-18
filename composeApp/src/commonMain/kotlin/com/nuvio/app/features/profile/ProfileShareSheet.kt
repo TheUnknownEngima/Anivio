@@ -51,6 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.nuvio.app.core.ANIVIO_WEBSITE_HOST
+import com.nuvio.app.core.ANIVIO_WEBSITE_URL
 import com.nuvio.app.core.ui.NuvioPrimaryButton
 import com.nuvio.app.core.ui.NuvioSurfaceCard
 import com.nuvio.app.core.ui.nuvio
@@ -138,7 +140,7 @@ fun ProfileShareSheet(
                         ProfileShare.shareImage(
                             image = bitmap,
                             fileName = "anivio-profile",
-                            caption = "My Anivio profile — Lv. ${stats.level.level} ${stats.level.title}",
+                            caption = "My Anivio profile — Lv. ${stats.level.level} ${stats.level.title}\n$ANIVIO_WEBSITE_URL",
                         )
                     }
                     onDismiss()
@@ -206,7 +208,14 @@ private fun ShareCard(
                 .background(Color.Black.copy(alpha = 0.24f)),
         )
         Column(modifier = Modifier.padding(24.dp)) {
-            Text("ANIVIO", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("ANIVIO", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                Text(ANIVIO_WEBSITE_HOST, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+            }
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 LevelRing(progress = stats.level.progress, ringSize = 72.dp, stroke = 6.dp) {

@@ -50,6 +50,7 @@ if (!dev)
     "account/reset-password",
     "account/recovery",
     "link",
+    "party",
     "covers",
     "community-collections",
     "news",

@@ -38,7 +38,7 @@ internal actual object ProfileShare {
                     if (caption.isNotBlank()) putExtra(Intent.EXTRA_TEXT, caption)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                val chooser = Intent.createChooser(send, caption.ifBlank { "Share" }).apply {
+                val chooser = Intent.createChooser(send, null).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(chooser)
