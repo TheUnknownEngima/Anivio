@@ -40,3 +40,4 @@ ci-release.jks
 brag-output/
 graphify-out/
 app_logo_wordmark_original_backup.png
+__pycache__/

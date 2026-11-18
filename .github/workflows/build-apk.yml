@@ -1,4 +1,4 @@
-name: Build APK
+name: Anivio Android release
 
 on:
   workflow_dispatch:
@@ -7,6 +7,16 @@ on:
         description: 'Branch, tag, or full commit SHA to build'
         required: true
         default: 'cmp-rewrite'
+      bump:
+        description: 'Version increment (beta builds continue the current beta version)'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      release_mode:
+        description: 'Publish now, create a draft, or save artifacts only'
+        type: choice
+        options: [draft, publish, artifact]
+        default: draft
       arch:
         description: 'CPU architecture for native libraries'
         required: true
@@ -18,7 +28,7 @@ on:
           - x86_64
           - all
       build_type:
-        description: 'Build type (release = minified + smaller, like a laptop build)'
+        description: 'Build type (debug requires artifact mode)'
         required: true
         default: 'release'
         type: choice
@@ -26,10 +36,18 @@ on:
           - release
           - debug
       prerelease:
-        description: 'Mark the GitHub release as a pre-release (pre-releases are ignored by the in-app updater)'
+        description: 'Create a beta version and exclude it from the stable update channel'
         required: true
         default: true
         type: boolean
+
+# All version allocation and publication happens under one repository-wide lock.
+concurrency:
+  group: android-publication
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -37,10 +55,35 @@ jobs:
     permissions:
       contents: write # needed to publish the APK as a GitHub Release
     steps:
+      - name: Validate build and publication mode
+        env:
+          BUILD_TYPE: ${{ inputs.build_type }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+        run: |
+          if [[ "$BUILD_TYPE" == debug && "$RELEASE_MODE" != artifact ]]; then
+            echo "Debug builds use a separate application ID. Select artifact mode to build one." >&2
+            exit 1
+          fi
+
       - name: Check out ${{ inputs.ref }}
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Allocate version and generate changelog
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_BUMP: ${{ inputs.bump }}
+          IS_PRERELEASE: ${{ inputs.prerelease || inputs.build_type == 'debug' }}
+        run: |
+          mkdir -p build/release
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp | jq 'add // []' > build/release/releases.json
+          python scripts/prepare-android-release.py \
+            --releases build/release/releases.json --bump "${VERSION_BUMP}" \
+            --prerelease "${IS_PRERELEASE}" --repository "${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
+          cat build/release/notes.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -69,82 +112,116 @@ jobs:
           mv "$ANDROID_SDK_ROOT/platforms/android-37.0" "$ANDROID_SDK_ROOT/platforms/android-37"
           test -f "$ANDROID_SDK_ROOT/platforms/android-37/android.jar"
 
-      - name: Create local.properties from secrets
+      - name: Configure runtime and release signing
+        env:
+          ANIVIO_SUPABASE_URL: ${{ secrets.ANIVIO_SUPABASE_URL }}
+          ANIVIO_SUPABASE_ANON_KEY: ${{ secrets.ANIVIO_SUPABASE_ANON_KEY }}
+          ANIVIO_SUPABASE_FALLBACK_URL: ${{ secrets.ANIVIO_SUPABASE_FALLBACK_URL }}
+          ANIVIO_DEVICE_LINK_URL: ${{ vars.ANIVIO_DEVICE_LINK_URL }}
+          NUVIO_SUPABASE_URL: ${{ secrets.NUVIO_SUPABASE_URL }}
+          NUVIO_SUPABASE_ANON_KEY: ${{ secrets.NUVIO_SUPABASE_ANON_KEY }}
+          NUVIO_SUPABASE_FALLBACK_URL: ${{ secrets.NUVIO_SUPABASE_FALLBACK_URL }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          FANART_API_KEY: ${{ secrets.FANART_API_KEY }}
+          TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+          DISCORD_APP_ID: ${{ secrets.DISCORD_APP_ID }}
+          MAL_CLIENT_ID: ${{ secrets.MAL_CLIENT_ID }}
+          MAL_REDIRECT_URI: ${{ secrets.MAL_REDIRECT_URI }}
+          ANIVIO_UPDATE_GITHUB_TOKEN: ${{ secrets.UPDATER_GITHUB_TOKEN }}
+          ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
+          ANILIST_REDIRECT_URI: ${{ secrets.ANILIST_REDIRECT_URI }}
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+          TRAKT_REDIRECT_URI: ${{ secrets.TRAKT_REDIRECT_URI }}
+          SIMKL_CLIENT_ID: ${{ secrets.SIMKL_CLIENT_ID }}
+          SIMKL_REDIRECT_URI: ${{ secrets.SIMKL_REDIRECT_URI }}
+          SIMKL_APP_NAME: ${{ secrets.SIMKL_APP_NAME }}
+          PREMIUMIZE_CLIENT_ID: ${{ secrets.PREMIUMIZE_CLIENT_ID }}
+          INTRODB_API_URL: ${{ secrets.INTRODB_API_URL }}
+          IMDB_RATINGS_API_BASE_URL: ${{ secrets.IMDB_RATINGS_API_BASE_URL }}
+          IMDB_TAPFRAME_API_BASE_URL: ${{ secrets.IMDB_TAPFRAME_API_BASE_URL }}
+          CONTRIBUTIONS_URL: ${{ secrets.CONTRIBUTIONS_URL }}
+          SUPPORTERS_WALL_URL: ${{ secrets.SUPPORTERS_WALL_URL }}
+          DONATIONS_BASE_URL: ${{ secrets.DONATIONS_BASE_URL }}
+          DONATIONS_DONATE_URL: ${{ secrets.DONATIONS_DONATE_URL }}
+          NUVIO_RELEASE_STORE_PASSWORD: ${{ secrets.NUVIO_RELEASE_STORE_PASSWORD }}
+          NUVIO_RELEASE_KEY_ALIAS: ${{ secrets.NUVIO_RELEASE_KEY_ALIAS }}
+          NUVIO_RELEASE_KEY_PASSWORD: ${{ secrets.NUVIO_RELEASE_KEY_PASSWORD }}
+          NUVIO_RELEASE_KEYSTORE_BASE64: ${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          BUILD_TYPE: ${{ inputs.build_type }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
-          # generateRuntimeConfigs reads every key below from local.properties.
-          # Secrets that don't exist yet expand to blank, which the app handles
-          # gracefully (that feature simply stays disabled). Add values under
-          # repo Settings -> Secrets and variables -> Actions.
-          cat > local.properties <<'EOF'
-          ANIVIO_SUPABASE_URL=${{ secrets.ANIVIO_SUPABASE_URL }}
-          ANIVIO_SUPABASE_ANON_KEY=${{ secrets.ANIVIO_SUPABASE_ANON_KEY }}
-          ANIVIO_SUPABASE_FALLBACK_URL=${{ secrets.ANIVIO_SUPABASE_FALLBACK_URL }}
-          NUVIO_SUPABASE_URL=${{ secrets.NUVIO_SUPABASE_URL }}
-          NUVIO_SUPABASE_ANON_KEY=${{ secrets.NUVIO_SUPABASE_ANON_KEY }}
-          NUVIO_SUPABASE_FALLBACK_URL=${{ secrets.NUVIO_SUPABASE_FALLBACK_URL }}
-          SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-          FANART_API_KEY=${{ secrets.FANART_API_KEY }}
-          TVDB_API_KEY=${{ secrets.TVDB_API_KEY }}
-          DISCORD_APP_ID=${{ secrets.DISCORD_APP_ID }}
-          MAL_CLIENT_ID=${{ secrets.MAL_CLIENT_ID }}
-          MAL_REDIRECT_URI=${{ secrets.MAL_REDIRECT_URI }}
-          ANIVIO_UPDATE_GITHUB_OWNER=mdtahseen7
-          ANIVIO_UPDATE_GITHUB_REPO=Anivio
-          ANIVIO_UPDATE_CHANNEL=
-          ANIVIO_UPDATE_USER_AGENT=
-          ANIVIO_UPDATE_GITHUB_TOKEN=${{ secrets.UPDATER_GITHUB_TOKEN }}
-          ANIVIO_RELEASE_TAG=ci-${{ inputs.arch }}-${{ github.run_id }}
-          ANILIST_CLIENT_ID=${{ secrets.ANILIST_CLIENT_ID }}
-          ANILIST_REDIRECT_URI=${{ secrets.ANILIST_REDIRECT_URI }}
-          TRAKT_CLIENT_ID=${{ secrets.TRAKT_CLIENT_ID }}
-          TRAKT_CLIENT_SECRET=${{ secrets.TRAKT_CLIENT_SECRET }}
-          TRAKT_REDIRECT_URI=${{ secrets.TRAKT_REDIRECT_URI }}
-          SIMKL_CLIENT_ID=${{ secrets.SIMKL_CLIENT_ID }}
-          SIMKL_REDIRECT_URI=${{ secrets.SIMKL_REDIRECT_URI }}
-          SIMKL_APP_NAME=${{ secrets.SIMKL_APP_NAME }}
-          PREMIUMIZE_CLIENT_ID=${{ secrets.PREMIUMIZE_CLIENT_ID }}
-          INTRODB_API_URL=${{ secrets.INTRODB_API_URL }}
-          IMDB_RATINGS_API_BASE_URL=${{ secrets.IMDB_RATINGS_API_BASE_URL }}
-          IMDB_TAPFRAME_API_BASE_URL=${{ secrets.IMDB_TAPFRAME_API_BASE_URL }}
-          CONTRIBUTIONS_URL=${{ secrets.CONTRIBUTIONS_URL }}
-          SUPPORTERS_WALL_URL=${{ secrets.SUPPORTERS_WALL_URL }}
-          DONATIONS_BASE_URL=${{ secrets.DONATIONS_BASE_URL }}
-          DONATIONS_DONATE_URL=${{ secrets.DONATIONS_DONATE_URL }}
-          EOF
-          # CI release signing: decode the keystore (if the secret exists) and
-          # point the NUVIO_RELEASE_* keys at it. Without it, the build falls
-          # back to the debug key (see -PanivioCiBuild in androidApp).
-          if [ -n "${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}" ]; then
-            echo '${{ secrets.NUVIO_RELEASE_KEYSTORE_BASE64 }}' | base64 -d > ci-release.p12
-            cat >> local.properties <<'EOF'
-          NUVIO_RELEASE_STORE_FILE=ci-release.p12
-          NUVIO_RELEASE_STORE_PASSWORD=${{ secrets.NUVIO_RELEASE_STORE_PASSWORD }}
-          NUVIO_RELEASE_KEY_ALIAS=${{ secrets.NUVIO_RELEASE_KEY_ALIAS }}
-          NUVIO_RELEASE_KEY_PASSWORD=${{ secrets.NUVIO_RELEASE_KEY_PASSWORD }}
-          EOF
-          fi
+          python - <<'PY'
+          import base64, os
+          from pathlib import Path
+          def escape(value):
+              return value.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r')
+          keys = ['ANIVIO_SUPABASE_URL', 'ANIVIO_SUPABASE_ANON_KEY', 'ANIVIO_SUPABASE_FALLBACK_URL', 'NUVIO_SUPABASE_URL', 'NUVIO_SUPABASE_ANON_KEY', 'NUVIO_SUPABASE_FALLBACK_URL', 'SENTRY_DSN', 'FANART_API_KEY', 'TVDB_API_KEY', 'DISCORD_APP_ID', 'MAL_CLIENT_ID', 'MAL_REDIRECT_URI', 'ANIVIO_UPDATE_GITHUB_TOKEN', 'ANILIST_CLIENT_ID', 'ANILIST_REDIRECT_URI', 'TRAKT_CLIENT_ID', 'TRAKT_CLIENT_SECRET', 'TRAKT_REDIRECT_URI', 'SIMKL_CLIENT_ID', 'SIMKL_REDIRECT_URI', 'SIMKL_APP_NAME', 'PREMIUMIZE_CLIENT_ID', 'INTRODB_API_URL', 'IMDB_RATINGS_API_BASE_URL', 'IMDB_TAPFRAME_API_BASE_URL', 'CONTRIBUTIONS_URL', 'SUPPORTERS_WALL_URL', 'DONATIONS_BASE_URL', 'DONATIONS_DONATE_URL']
+          props = {name: os.environ.get(name, '') for name in keys}
+          props['ANIVIO_DEVICE_LINK_URL'] = os.environ.get('ANIVIO_DEVICE_LINK_URL', '')
+          props.update(ANIVIO_UPDATE_GITHUB_OWNER='mdtahseen7', ANIVIO_UPDATE_GITHUB_REPO='Anivio', ANIVIO_RELEASE_TAG=os.environ['RELEASE_TAG'])
+          signing = ['NUVIO_RELEASE_KEYSTORE_BASE64','NUVIO_RELEASE_STORE_PASSWORD','NUVIO_RELEASE_KEY_ALIAS','NUVIO_RELEASE_KEY_PASSWORD']
+          complete = all(os.environ.get(k) for k in signing)
+          if os.environ['BUILD_TYPE'] == 'release' and os.environ['RELEASE_MODE'] != 'artifact' and not complete:
+              raise SystemExit('Signed releases require all NUVIO_RELEASE_* secrets. Use artifact mode for a test build.')
+          if complete:
+              keystore = Path(os.environ['RUNNER_TEMP']) / 'anivio-release.jks'
+              keystore.write_bytes(base64.b64decode(os.environ[signing[0]], validate=True))
+              props['NUVIO_RELEASE_STORE_FILE'] = str(keystore)
+              props.update({k: os.environ[k] for k in signing[1:]})
+          Path('local.properties').write_text(''.join(k+'='+escape(v)+'\n' for k,v in props.items()))
+          PY
 
       - name: Build APK (${{ inputs.arch }}, ${{ inputs.build_type }})
-        run: |
-          TYPE="${{ inputs.build_type }}"
-          TASK="assembleFull$(tr '[:lower:]' '[:upper:]' <<< "${TYPE:0:1}")${TYPE:1}"
-          ./gradlew ":androidApp:$TASK" "-PanivioAbi=${{ inputs.arch }}" -PanivioCiBuild=true --console=plain
-
-      - name: Publish raw APK as GitHub Release (no zip)
-        # GitHub Action artifacts are always zipped; attaching the APK to a
-        # release gives a direct raw .apk download link instead.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_TYPE: ${{ inputs.build_type }}
+          BUILD_ARCH: ${{ inputs.arch }}
         run: |
-          APK_DIR="androidApp/build/outputs/apk/full/${{ inputs.build_type }}"
-          ls "$APK_DIR"/*.apk
-          TAG="ci-${{ inputs.arch }}-${{ github.run_id }}"
-          PRERELEASE_FLAG=""
-          if [ "${{ inputs.prerelease }}" = "true" ]; then
-            PRERELEASE_FLAG="--prerelease"
-          fi
-          gh release create "$TAG" \
-            $PRERELEASE_FLAG \
-            --title "CI ${{ inputs.build_type }} build · ${{ inputs.arch }} · ${GITHUB_SHA:0:7}" \
-            --notes "Automated CI build of \`${{ inputs.ref }}\` (${GITHUB_SHA}). Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-            "$APK_DIR"/*.apk
+          TYPE="${BUILD_TYPE}"
+          TASK="assembleFull$(tr '[:lower:]' '[:upper:]' <<< "${TYPE:0:1}")${TYPE:1}"
+          ./gradlew ":androidApp:$TASK" "-PanivioAbi=${BUILD_ARCH}" -PanivioCiBuild=true \
+            "-PanivioVersionName=${{ steps.version.outputs.version }}" \
+            "-PanivioVersionCode=${{ steps.version.outputs.version_code }}" --console=plain
+
+      - name: Prepare named release assets
+        env:
+          BUILD_TYPE: ${{ inputs.build_type }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_ARCH: ${{ inputs.arch }}
+        run: |
+          APK_DIR="androidApp/build/outputs/apk/full/${BUILD_TYPE}"
+          mkdir -p build/release/assets
+          count=0
+          for apk in "$APK_DIR"/*.apk; do
+            test -f "$apk"
+            count=$((count + 1))
+            cp "$apk" "build/release/assets/Anivio-${RELEASE_VERSION}-${RELEASE_ARCH}-${BUILD_TYPE}-${count}.apk"
+          done
+          cp build/release/release.json build/release/assets/release.json
+          (cd build/release/assets && sha256sum *.apk > SHA256SUMS.txt)
+
+      - name: Upload APK, metadata, checksums, and changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anivio-${{ steps.version.outputs.version }}-${{ inputs.arch }}
+          path: |
+            build/release/assets/*
+            build/release/notes.md
+          if-no-files-found: error
+
+      - name: Publish versioned GitHub release
+        if: inputs.release_mode != 'artifact'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_COMMIT: ${{ steps.version.outputs.commit }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          IS_PRERELEASE: ${{ inputs.prerelease }}
+          BUILD_TYPE: ${{ inputs.build_type }}
+        run: |
+          args=("$RELEASE_TAG" --target "$RELEASE_COMMIT" --title "Anivio $RELEASE_VERSION" --notes-file build/release/notes.md)
+          if [[ "$RELEASE_MODE" == draft ]]; then args+=(--draft); fi
+          if [[ "$IS_PRERELEASE" == true || "$BUILD_TYPE" == debug ]]; then args+=(--prerelease --latest=false); else args+=(--latest); fi
+          gh release create --repo "$GITHUB_REPOSITORY" "${args[@]}" build/release/assets/*
