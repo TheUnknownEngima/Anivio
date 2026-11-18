@@ -12,6 +12,8 @@ import androidx.media3.effect.BaseGlShaderProgram
 import androidx.media3.effect.GlEffect
 import androidx.media3.effect.GlShaderProgram
 import com.nuvio.app.features.player.EnhancementStatus
+import com.nuvio.app.features.player.EnhancementResolution
+import com.nuvio.app.features.player.EnhancementFrameInfo
 import com.nuvio.app.features.player.VideoEnhancement
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -21,10 +23,11 @@ import java.nio.ByteOrder
 internal class AnimeShaderEffect(
     private val mode: VideoEnhancement,
     private val display: ShaderSize,
-    private val onStatus: (EnhancementStatus) -> Unit,
+    private val resolution: EnhancementResolution,
+    private val onStatus: (EnhancementStatus, EnhancementFrameInfo?) -> Unit,
 ) : GlEffect {
     override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram =
-        AnimeShaderProgram(context.applicationContext, mode, display, useHdr, onStatus)
+        AnimeShaderProgram(context.applicationContext, mode, display, resolution, useHdr, onStatus)
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -32,16 +35,20 @@ internal class AnimeShaderProgram(
     private val context: Context,
     private val mode: VideoEnhancement,
     private val display: ShaderSize,
+    private val resolution: EnhancementResolution,
     private val hdr: Boolean,
-    private val onStatus: (EnhancementStatus) -> Unit,
+    private val onStatus: (EnhancementStatus, EnhancementFrameInfo?) -> Unit,
 ) : BaseGlShaderProgram(hdr, 1) {
     private data class Target(val texture: Int, val fbo: Int)
     private var graph: ShaderGraph? = null
     private val programs = mutableListOf<Program>()
     private val targets = mutableListOf<Target>()
     private val copy = Program(COPY_FRAGMENT, modern = false)
-    private val memoryBudget = if ((context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager)?.isLowRamDevice == true)
-        32L * 1024 * 1024 else MAX_BYTES
+    private val memoryBudget = run {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        val memory = ActivityManager.MemoryInfo().also { manager?.getMemoryInfo(it) }
+        enhancementMemoryBudget(resolution, manager?.isLowRamDevice == true, memory.totalMem)
+    }
     private var input = ShaderSize(1, 1)
     private var frame = 0
     private var lastTimeUs = 0L
@@ -50,11 +57,17 @@ internal class AnimeShaderProgram(
     private val speed = EnhancementPerformanceGuard()
 
     private fun report(status: EnhancementStatus) {
-        if (reported != status) { reported = status; onStatus(status) }
+        if (reported != status) {
+            reported = status
+            val output = graph?.output
+            onStatus(status, if (status == EnhancementStatus.Active && output != null)
+                EnhancementFrameInfo(input.width, input.height, output.width, output.height) else null)
+        }
     }
 
     override fun configure(inputWidth: Int, inputHeight: Int): Size {
         clearPipeline()
+        reported = null
         input = ShaderSize(inputWidth, inputHeight)
         if (failed) return Size(inputWidth, inputHeight)
         if (hdr) { report(EnhancementStatus.Hdr); return Size(inputWidth, inputHeight) }
@@ -65,7 +78,7 @@ internal class AnimeShaderProgram(
             report(EnhancementStatus.Unsupported)
             return Size(inputWidth, inputHeight)
         }
-        val output = enhancementOutputSize(input, display, mode != VideoEnhancement.Light)
+        val output = enhancementOutputSize(input, display, mode != VideoEnhancement.Light, resolution)
         val previousFbo = IntArray(1).also { GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, it, 0) }[0]
         try {
             val sources = mode.shaders.map { name -> context.assets.open("video_enhancement/$name").bufferedReader().use { it.readText() } }
@@ -173,7 +186,6 @@ internal class AnimeShaderProgram(
 
     companion object {
         private const val TAG = "AnivioEnhancement"
-        private const val MAX_BYTES = 96L * 1024 * 1024
         internal fun fragment(node: ShaderNode): String = buildString {
             appendLine("#version 300 es\nprecision highp float;\nprecision highp int;\nin vec2 v_uv;\nout vec4 outColor;")
             node.inputs.keys.forEach { name ->

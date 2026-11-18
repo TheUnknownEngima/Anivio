@@ -14,9 +14,42 @@ class VideoEnhancementTest {
         assertEquals(VideoEnhancement.Off, VideoEnhancement.fromStorage(null))
         val input = ShaderSize(1280, 720)
         assertEquals(input, enhancementOutputSize(input, ShaderSize(2560, 1440), false))
-        assertEquals(ShaderSize(1920, 1080), enhancementOutputSize(input, ShaderSize(2560, 1440), true))
-        assertEquals(ShaderSize(1080, 1920), enhancementOutputSize(ShaderSize(720, 1280), ShaderSize(1440, 2560), true))
+        assertEquals(ShaderSize(1920, 1080), enhancementOutputSize(input, ShaderSize(2560, 1440), true, EnhancementResolution.FullHd))
+        assertEquals(ShaderSize(1080, 1920), enhancementOutputSize(ShaderSize(720, 1280), ShaderSize(1440, 2560), true, EnhancementResolution.FullHd))
         assertEquals(ShaderSize(3840, 2160), enhancementOutputSize(ShaderSize(3840, 2160), ShaderSize(1920, 1080), true))
+    }
+
+    @Test fun native2kFitsThePocoDisplayAndNeverExceedsTwoTimesOrTheOutputCap() {
+        assertEquals(EnhancementResolution.Native2k, EnhancementResolution.fromStorage(null))
+        assertEquals(EnhancementResolution.Native2k, EnhancementResolution.fromStorage("invalid"))
+        assertEquals(ShaderSize(2276, 1280), enhancementOutputSize(ShaderSize(1920, 1080), ShaderSize(2772, 1280), true))
+        assertEquals(ShaderSize(1280, 2276), enhancementOutputSize(ShaderSize(1080, 1920), ShaderSize(1280, 2772), true))
+        assertEquals(ShaderSize(2560, 1440), enhancementOutputSize(ShaderSize(1920, 1080), ShaderSize(3840, 2160), true))
+        assertEquals(ShaderSize(1280, 720), enhancementOutputSize(ShaderSize(640, 360), ShaderSize(3840, 2160), true))
+        assertEquals(ShaderSize(1920, 1080), enhancementOutputSize(ShaderSize(1920, 1080), ShaderSize(1920, 1080), true))
+    }
+
+    @Test fun everyUpscalerRunsFor1080pTo1280pWithoutAllocatingA4kIntermediate() {
+        val input = ShaderSize(1920, 1080)
+        val output = enhancementOutputSize(input, ShaderSize(2772, 1280), true)
+        VideoEnhancement.entries.filter { it != VideoEnhancement.Off && it != VideoEnhancement.Light }.forEach { mode ->
+            val graph = assertNotNull(buildShaderGraph(mode.shaders.map(::source), input, output), mode.name)
+            assertEquals(output, graph.output)
+            assertTrue(graph.nodes.last().body.contains("upscaleAt"), mode.name)
+            assertTrue(graph.slots.all { it.width <= input.width && it.height <= input.height }, mode.name)
+            val budget = enhancementMemoryBudget(EnhancementResolution.Native2k, false, 12_000_000_000L)
+            assertTrue(graph.estimatedBytes(input) <= budget,
+                "${mode.name}: ${graph.estimatedBytes(input) / (1024 * 1024)} MiB exceeds budget")
+        }
+    }
+
+    @Test fun memoryHeadroomDependsOnTheDeviceAndTheSelectedOutputLimit() {
+        fun budget(output: EnhancementResolution, lowRam: Boolean, ram: Long) = enhancementMemoryBudget(output, lowRam, ram) / (1024 * 1024)
+        assertEquals(224L, budget(EnhancementResolution.Native2k, false, 12_000_000_000L))
+        assertEquals(160L, budget(EnhancementResolution.Native2k, false, 5_500_000_000L))
+        assertEquals(96L, budget(EnhancementResolution.Native2k, false, 0L))
+        assertEquals(96L, budget(EnhancementResolution.FullHd, false, 12_000_000_000L))
+        assertEquals(32L, budget(EnhancementResolution.Native2k, true, 12_000_000_000L))
     }
 
     @Test fun bundledShadersHaveValidBindingsAndNoReadWriteFeedback() {
@@ -48,7 +81,8 @@ class VideoEnhancementTest {
 
     @Test fun fsrcnnxHasAnExplicitLumaAndChromaPath() {
         val graph = assertNotNull(buildShaderGraph(VideoEnhancement.Fsrcnnx.shaders.map(::source), ShaderSize(320, 180), ShaderSize(640, 360)))
-        assertTrue(graph.nodes.any { it.inputs.keys == setOf("MAIN", "LUMA") && it.body.contains("rgb + vec3") })
+        assertTrue(graph.nodes.last().inputs.containsKey("SOURCE_RGB"))
+        assertTrue(graph.nodes.last().body.contains("oldLuma"))
         assertTrue(graph.nodes.first().body.contains("pow"))
         assertTrue(graph.nodes.last().body.contains("1.0 / 0.45"))
     }
@@ -73,10 +107,14 @@ class VideoEnhancementTest {
     @Test fun exportGpuFixtures() {
         val output = buildJsonArray {
             VideoEnhancement.entries.filter { it != VideoEnhancement.Off }.forEach { mode ->
-                val graph = assertNotNull(buildShaderGraph(mode.shaders.map(::source), ShaderSize(64, 36),
-                    if (mode == VideoEnhancement.Light) ShaderSize(64, 36) else ShaderSize(128, 72)))
+              val sizes = if (mode == VideoEnhancement.Light) listOf(ShaderSize(64, 36)) else listOf(ShaderSize(128, 72), ShaderSize(76, 43))
+              sizes.forEach { outputSize ->
+               listOf(true, false).forEach { fused ->
+                val graph = assertNotNull(buildShaderGraph(mode.shaders.map(::source), ShaderSize(64, 36), outputSize, fuseOutput = fused))
                 add(buildJsonObject {
-                    put("mode", mode.name)
+                    put("mode", "${mode.name}/${outputSize.width}x${outputSize.height}/${if (fused) "fused" else "reference"}")
+                    put("pair", "${mode.name}/${outputSize.width}x${outputSize.height}")
+                    put("reference", !fused)
                     put("width", graph.output.width); put("height", graph.output.height)
                     put("nodes", buildJsonArray {
                         graph.nodes.forEachIndexed { index, node -> add(buildJsonObject {
@@ -87,6 +125,8 @@ class VideoEnhancementTest {
                         }) }
                     })
                 })
+               }
+              }
             }
         }
         File("build/enhancement-gpu-fixtures.json").writeText(output.toString())

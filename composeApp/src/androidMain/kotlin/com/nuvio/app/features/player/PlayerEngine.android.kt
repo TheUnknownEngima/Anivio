@@ -556,7 +556,7 @@ private fun ExoPlayerSurface(
         enhancementReloadState += exoPlayer.playbackParameters to exoPlayer.volume
     }
 
-    LaunchedEffect(exoPlayer, enhancementSettings.videoEnhancement) {
+    LaunchedEffect(exoPlayer, enhancementSettings.videoEnhancement, enhancementSettings.enhancementResolution) {
         if (enhancementSettings.videoEnhancement != VideoEnhancement.Off && !useEnhancementPipeline) {
             // Establish the processing path before prepare; preserve playback on the one-time rebuild.
             preserveEnhancementPlaybackForReload()
@@ -564,7 +564,7 @@ private fun ExoPlayerSurface(
             enhancementPipelineBlocked = false
             enhancementPipelineRequested = true
         } else {
-            enhancementController.select(enhancementSettings.videoEnhancement)
+            enhancementController.select(enhancementSettings.videoEnhancement, enhancementSettings.enhancementResolution)
         }
     }
 

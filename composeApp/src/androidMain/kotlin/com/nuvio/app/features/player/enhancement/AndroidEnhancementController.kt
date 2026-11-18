@@ -10,6 +10,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.nuvio.app.core.storage.ProfileScopedKey
 import com.nuvio.app.features.player.EnhancementStatus
+import com.nuvio.app.features.player.EnhancementResolution
 import com.nuvio.app.features.player.PlayerSettingsRepository
 import com.nuvio.app.features.player.VideoEnhancement
 import com.nuvio.app.features.player.VideoEnhancementRuntime
@@ -27,6 +28,7 @@ internal class AndroidEnhancementController(context: Context, private val pipeli
     private var generation = 0
     private var closed = false
     private var currentMode = VideoEnhancement.Off
+    private var currentResolution = EnhancementResolution.Native2k
     private var hasSelection = false
     private var failure: EnhancementStatus? = VideoEnhancementRuntime.status.value.takeIf { it == EnhancementStatus.Recovered }
     private var droppedWindows = 0
@@ -51,13 +53,14 @@ internal class AndroidEnhancementController(context: Context, private val pipeli
         select(PlayerSettingsRepository.uiState.value.videoEnhancement)
     }
 
-    fun select(mode: VideoEnhancement) {
+    fun select(mode: VideoEnhancement, resolution: EnhancementResolution = PlayerSettingsRepository.uiState.value.enhancementResolution) {
         if (closed) return
-        if (hasSelection && mode == currentMode) return
+        if (hasSelection && mode == currentMode && resolution == currentResolution) return
         val exoPlayer = player ?: return
         hasSelection = true
         generation++
         currentMode = mode
+        currentResolution = resolution
         droppedWindows = 0
         if (mode == VideoEnhancement.Off) {
             if (pipelineEnabled) runCatching { exoPlayer.setVideoEffects(emptyList()) }
@@ -70,10 +73,10 @@ internal class AndroidEnhancementController(context: Context, private val pipeli
         if (!prefs.edit().putString(guardKey, owner).commit()) { fail(EnhancementStatus.Failed); return }
         val request = generation
         val metrics = appContext.resources.displayMetrics
-        val effect = AnimeShaderEffect(mode, ShaderSize(metrics.widthPixels.coerceAtLeast(1), metrics.heightPixels.coerceAtLeast(1))) { status ->
+        val effect = AnimeShaderEffect(mode, ShaderSize(metrics.widthPixels.coerceAtLeast(1), metrics.heightPixels.coerceAtLeast(1)), resolution) { status, info ->
             main.post {
                 if (!closed && request == generation && currentMode != VideoEnhancement.Off) {
-                    if (status in terminalFailures) fail(status) else VideoEnhancementRuntime.report(status)
+                    if (status in terminalFailures) fail(status) else VideoEnhancementRuntime.report(status, info)
                 }
             }
         }

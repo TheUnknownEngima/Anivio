@@ -28,9 +28,12 @@ class VideoEnhancementRecoveryTest {
 
     @Test fun enhancementSelectionPersistsAndIsIncludedInSettingsSync() {
         PlayerSettingsRepository.setVideoEnhancement(VideoEnhancement.Fsrcnnx)
+        PlayerSettingsRepository.setEnhancementResolution(EnhancementResolution.FullHd)
         PlayerSettingsRepository.onProfileChanged()
         assertEquals(VideoEnhancement.Fsrcnnx, PlayerSettingsRepository.uiState.value.videoEnhancement)
         assertTrue(PlayerSettingsStorage.exportToSyncPayload().toString().contains("Fsrcnnx"))
+        assertEquals(EnhancementResolution.FullHd, PlayerSettingsRepository.uiState.value.enhancementResolution)
+        assertTrue(PlayerSettingsStorage.exportToSyncPayload().toString().contains("FullHd"))
     }
 
     @Test fun anInterruptedPreviousProcessIsDisabledBeforeTheGlPathIsChosen() {

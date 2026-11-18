@@ -11,6 +11,8 @@ internal expect object PlayerSettingsStorage {
     fun saveShowDetailedLoadingStatus(value: Boolean)
     fun loadShowPauseOverlay(): Boolean?
     fun saveShowPauseOverlay(value: Boolean)
+    fun loadEnhancementResolution(): String?
+    fun saveEnhancementResolution(value: String)
     fun loadVideoEnhancement(): String?
     fun saveVideoEnhancement(value: String)
     fun loadExoChaptersEnabled(): Boolean?

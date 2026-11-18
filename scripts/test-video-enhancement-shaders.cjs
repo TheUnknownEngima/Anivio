@@ -45,6 +45,7 @@ function run(fixtures) {
   }
   const input = texture(64, 36, pixels);
   const results = [];
+  const comparisons = new Map();
   for (const graph of fixtures) {
     canvas.width = graph.width; canvas.height = graph.height;
     const targets = new Map();
@@ -99,7 +100,22 @@ function run(fixtures) {
     }
     const mean = sum / (graph.width * graph.height * 3);
     if (mean < 10 || mean > 245 || max - min < 30) throw new Error(`${graph.mode}: blank or corrupted output`);
-    results.push({ mode: graph.mode, passes: graph.nodes.length, size: `${graph.width}x${graph.height}`, mean: +mean.toFixed(2), result: 'pass' });
+    let meanDifference;
+    if (graph.pair) {
+      if (!graph.reference) comparisons.set(graph.pair, output.slice());
+      else {
+        const fused = comparisons.get(graph.pair);
+        if (!fused || fused.length !== output.length) throw new Error('Missing fused/reference image pair');
+        let difference = 0;
+        for (let i = 0; i < output.length; i++) if (i % 4 !== 3) difference += Math.abs(output[i] - fused[i]);
+        meanDifference = difference / (graph.width * graph.height * 3);
+        // FSRCNNX preserves source chroma directly instead of filtering it twice through an RGB intermediate.
+        const tolerance = graph.mode.startsWith('Fsrcnnx') ? 3 : 1.5;
+        if (meanDifference > tolerance) throw new Error(`${graph.mode}: fused/reference difference ${meanDifference.toFixed(3)} exceeds ${tolerance}`);
+      }
+    }
+    results.push({ mode: graph.mode, passes: graph.nodes.length, size: `${graph.width}x${graph.height}`, mean: +mean.toFixed(2),
+      ...(meanDifference === undefined ? {} : { meanDifference: +meanDifference.toFixed(3) }), result: 'pass' });
     for (const id of resources) gl.deleteProgram(id);
     for (const target of targets.values()) { gl.deleteFramebuffer(target.fbo); gl.deleteTexture(target.id); }
   }

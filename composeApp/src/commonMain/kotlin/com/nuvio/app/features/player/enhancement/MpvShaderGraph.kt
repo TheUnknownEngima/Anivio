@@ -1,5 +1,6 @@
 package com.nuvio.app.features.player.enhancement
 
+import com.nuvio.app.features.player.EnhancementResolution
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -38,6 +39,17 @@ internal fun parseMpvShader(source: String): List<MpvPass> {
 }
 
 internal data class ShaderSize(val width: Int, val height: Int)
+
+internal fun enhancementMemoryBudget(resolution: EnhancementResolution, lowRam: Boolean, totalRamBytes: Long): Long {
+    val mib = when {
+        lowRam -> 32L
+        resolution == EnhancementResolution.FullHd -> 96L
+        totalRamBytes >= 7_000_000_000L -> 224L
+        totalRamBytes >= 5_000_000_000L -> 160L
+        else -> 96L
+    }
+    return mib * 1024 * 1024
+}
 internal data class ShaderNode(val size: ShaderSize, val inputs: Map<String, Int>, val body: String)
 internal data class ShaderGraph(val nodes: List<ShaderNode>, val output: ShaderSize, val slots: List<ShaderSize>, val nodeSlots: List<Int>) {
     // Reserve decoder/input and Media3 output surfaces too, not just our intermediate textures.
@@ -45,13 +57,15 @@ internal data class ShaderGraph(val nodes: List<ShaderNode>, val output: ShaderS
         input.width.toLong() * input.height * 8L + output.width.toLong() * output.height * 8L
 }
 
-internal fun enhancementOutputSize(input: ShaderSize, display: ShaderSize, upscale: Boolean): ShaderSize {
+internal fun enhancementOutputSize(input: ShaderSize, display: ShaderSize, upscale: Boolean,
+    resolution: EnhancementResolution = EnhancementResolution.Native2k): ShaderSize {
     require(input.width > 0 && input.height > 0 && display.width > 0 && display.height > 0)
     if (!upscale) return input
     val longSide = maxOf(input.width, input.height)
     val shortSide = minOf(input.width, input.height)
     val ratio = minOf(2.0, maxOf(display.width, display.height).toDouble() / longSide,
-        minOf(display.width, display.height).toDouble() / shortSide, 1920.0 / longSide, 1080.0 / shortSide).coerceAtLeast(1.0)
+        minOf(display.width, display.height).toDouble() / shortSide,
+        resolution.longSide.toDouble() / longSide, resolution.shortSide.toDouble() / shortSide).coerceAtLeast(1.0)
     return ShaderSize((input.width * ratio).roundToInt(), (input.height * ratio).roundToInt())
 }
 
@@ -93,10 +107,14 @@ vec4 hook() {
 }
 """
 
-internal fun buildShaderGraph(sources: List<String>, input: ShaderSize, output: ShaderSize): ShaderGraph? {
+internal fun buildShaderGraph(sources: List<String>, input: ShaderSize, output: ShaderSize, fuseOutput: Boolean = true): ShaderGraph? {
     val nodes = mutableListOf(ShaderNode(input, mapOf("INPUT" to -1), ENCODE))
     var main = 0
     var applied = false
+    // The bundled models produce exact 2x samples, even when the final display needs only 1.18x.
+    // Use that model scale for WHEN; the fused final pass resamples to the actual output size.
+    val modelOutput = if (output.width > input.width && output.height > input.height)
+        ShaderSize(input.width * 2, input.height * 2) else output
     sources.forEach { source ->
         val passes = parseMpvShader(source)
         val hook = passes.first().hook
@@ -108,7 +126,7 @@ internal fun buildShaderGraph(sources: List<String>, input: ShaderSize, output: 
             names[hook] = nodes.lastIndex
         }
         passes.forEach passLoop@ { pass ->
-            val sizes = names.mapValues { nodes[it.value].size } + ("OUTPUT" to output)
+            val sizes = names.mapValues { nodes[it.value].size } + ("OUTPUT" to modelOutput)
             if (pass.condition != null && evaluateShaderExpression(pass.condition, sizes) == 0.0) return@passLoop
             val base = sizes.getValue(hook)
             val width = pass.width?.let { evaluateShaderExpression(it, sizes).roundToInt() } ?: base.width
@@ -132,7 +150,53 @@ internal fun buildShaderGraph(sources: List<String>, input: ShaderSize, output: 
         }
     }
     if (!applied) return null
-    nodes += ShaderNode(output, mapOf("MAIN" to main), DECODE)
+    val colorNode = nodes[main]
+    val lumaNode = colorNode.inputs["LUMA"]
+    val scaleNode = nodes[lumaNode ?: main]
+    val isTwoTimes = scaleNode.size == ShaderSize(input.width * 2, input.height * 2)
+    if (fuseOutput && isTwoTimes && scaleNode.inputs.values.all { it >= 0 && nodes[it].size == input }) {
+        // Fuse depth-to-space, resize, chroma reconstruction and transfer decoding. No 4K
+        // intermediate texture is needed to enhance a 1080p source for a 1280p/1440p display.
+        val upscaleBody = scaleNode.body.replace("vec4 hook()", "vec4 upscaleAt(vec2 v_uv)")
+        val sample = if (scaleNode.size == output) "return upscaleAt(p);" else """
+            vec2 dimensions = vec2(${scaleNode.size.width}.0, ${scaleNode.size.height}.0);
+            vec2 pixel = p * dimensions - 0.5;
+            vec2 base = (floor(pixel) + 0.5) / dimensions;
+            vec2 f = fract(pixel);
+            vec2 stepSize = 1.0 / dimensions;
+            return mix(mix(sampleNativeAt(base), sampleNativeAt(base + vec2(stepSize.x, 0.0)), f.x),
+                mix(sampleNativeAt(base + vec2(0.0, stepSize.y)), sampleNativeAt(base + stepSize), f.x), f.y);
+        """.trimIndent()
+        val color = if (lumaNode == null) "vec3 c = clamp(resampleUpscale(v_uv).rgb, 0.0, 1.0);" else """
+            vec3 original = SOURCE_RGB_tex(v_uv).rgb;
+            float oldLuma = dot(original, vec3(0.2126, 0.7152, 0.0722));
+            vec3 c = clamp(original + vec3(resampleUpscale(v_uv).r - oldLuma), 0.0, 1.0);
+        """.trimIndent()
+        val bindings = scaleNode.inputs + if (lumaNode != null) mapOf("SOURCE_RGB" to colorNode.inputs.getValue("MAIN")) else emptyMap()
+        nodes += ShaderNode(output, bindings, """
+            $upscaleBody
+            vec4 sampleNativeAt(vec2 p) {
+                vec2 inset = vec2(0.5 / ${scaleNode.size.width}.0, 0.5 / ${scaleNode.size.height}.0);
+                return upscaleAt(clamp(p, inset, vec2(1.0) - inset));
+            }
+            vec4 resampleUpscale(vec2 p) { $sample }
+            vec4 hook() {
+                $color
+                return vec4(mix(c / 4.5, pow((c + 0.099) / 1.099, vec3(1.0 / 0.45)), step(vec3(0.081), c)), 1.0);
+            }
+        """.trimIndent())
+    } else nodes += ShaderNode(output, mapOf("MAIN" to main), DECODE)
+    // Discard the now-unused 2x targets before assigning texture slots or estimating memory.
+    val needed = mutableSetOf<Int>()
+    fun visit(index: Int) {
+        if (index < 0 || !needed.add(index)) return
+        nodes[index].inputs.values.forEach(::visit)
+    }
+    visit(nodes.lastIndex)
+    val kept = nodes.indices.filter { it in needed }
+    val remap = kept.withIndex().associate { it.value to it.index }
+    val compact = kept.map { index -> nodes[index].copy(inputs = nodes[index].inputs.mapValues { (_, source) -> if (source < 0) source else remap.getValue(source) }) }
+    nodes.clear(); nodes.addAll(compact)
     val lastReads = IntArray(nodes.size) { it }
     nodes.forEachIndexed { index, node -> node.inputs.values.filter { it >= 0 }.forEach { lastReads[it] = maxOf(lastReads[it], index) } }
     val slots = mutableListOf<ShaderSize>()

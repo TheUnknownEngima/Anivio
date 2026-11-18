@@ -37,6 +37,7 @@ data class PlayerSettingsUiState(
     val showPauseOverlay: Boolean = true,
     val exoChaptersEnabled: Boolean = true,
     val videoEnhancement: VideoEnhancement = VideoEnhancement.Off,
+    val enhancementResolution: EnhancementResolution = EnhancementResolution.Native2k,
     val preloadNextEpisode: Boolean = true,
     val preferSameServer: Boolean = true,
     val defaultServerKey: String = "",
@@ -130,6 +131,7 @@ object PlayerSettingsRepository {
     private var showPauseOverlay: Boolean = true
     private var exoChaptersEnabled: Boolean = true
     private var videoEnhancement = VideoEnhancement.Off
+    private var enhancementResolution = EnhancementResolution.Native2k
     private var preloadNextEpisode: Boolean = true
     private var preferSameServer: Boolean = true
     private var defaultServerKey: String = ""
@@ -221,6 +223,7 @@ object PlayerSettingsRepository {
         showPauseOverlay = true
         exoChaptersEnabled = true
         videoEnhancement = VideoEnhancement.Off
+        enhancementResolution = EnhancementResolution.Native2k
         preloadNextEpisode = true
         preferSameServer = true
         defaultServerKey = ""
@@ -305,6 +308,7 @@ object PlayerSettingsRepository {
         showPauseOverlay = PlayerSettingsStorage.loadShowPauseOverlay() ?: true
         exoChaptersEnabled = PlayerSettingsStorage.loadExoChaptersEnabled() ?: true
         videoEnhancement = VideoEnhancement.fromStorage(PlayerSettingsStorage.loadVideoEnhancement())
+        enhancementResolution = EnhancementResolution.fromStorage(PlayerSettingsStorage.loadEnhancementResolution())
         preloadNextEpisode = PlayerSettingsStorage.loadPreloadNextEpisode() ?: true
         preferSameServer = PlayerSettingsStorage.loadPreferSameServer() ?: true
         defaultServerKey = PlayerSettingsStorage.loadDefaultServerKey() ?: ""
@@ -1057,6 +1061,13 @@ object PlayerSettingsRepository {
         publish()
     }
 
+    fun setEnhancementResolution(value: EnhancementResolution) {
+        ensureLoaded()
+        enhancementResolution = value
+        PlayerSettingsStorage.saveEnhancementResolution(value.name)
+        publish()
+    }
+
     fun setVideoEnhancement(value: VideoEnhancement) {
         ensureLoaded()
         videoEnhancement = value
@@ -1156,6 +1167,7 @@ object PlayerSettingsRepository {
             showPauseOverlay = showPauseOverlay,
             exoChaptersEnabled = exoChaptersEnabled,
             videoEnhancement = videoEnhancement,
+            enhancementResolution = enhancementResolution,
             preloadNextEpisode = preloadNextEpisode,
             preferSameServer = preferSameServer,
             defaultServerKey = defaultServerKey,

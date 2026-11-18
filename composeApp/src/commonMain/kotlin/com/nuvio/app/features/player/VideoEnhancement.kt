@@ -19,6 +19,17 @@ enum class VideoEnhancement(val label: StringResource, val description: StringRe
     }
 }
 
+enum class EnhancementResolution(val label: StringResource, val description: StringResource, val longSide: Int, val shortSide: Int) {
+    FullHd(Res.string.enhancement_output_1080, Res.string.enhancement_output_1080_description, 1920, 1080),
+    Native2k(Res.string.enhancement_output_2k, Res.string.enhancement_output_2k_description, 2560, 1440);
+
+    companion object {
+        fun fromStorage(value: String?): EnhancementResolution = entries.firstOrNull { it.name == value } ?: Native2k
+    }
+}
+
+internal data class EnhancementFrameInfo(val inputWidth: Int, val inputHeight: Int, val outputWidth: Int, val outputHeight: Int)
+
 internal enum class EnhancementStatus(val message: StringResource) {
     Off(Res.string.enhancement_off_description), Preparing(Res.string.enhancement_preparing),
     Active(Res.string.enhancement_active), Unsupported(Res.string.enhancement_unsupported),
@@ -31,6 +42,11 @@ internal enum class EnhancementStatus(val message: StringResource) {
 /** Status only. Selection is profile-scoped in PlayerSettingsRepository. */
 internal object VideoEnhancementRuntime {
     private val state = MutableStateFlow(EnhancementStatus.Off)
+    private val details = MutableStateFlow<EnhancementFrameInfo?>(null)
     val status = state.asStateFlow()
-    fun report(value: EnhancementStatus) { state.value = value }
+    val frameInfo = details.asStateFlow()
+    fun report(value: EnhancementStatus, info: EnhancementFrameInfo? = null) {
+        details.value = info.takeIf { value == EnhancementStatus.Active }
+        state.value = value
+    }
 }

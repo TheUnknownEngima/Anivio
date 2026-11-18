@@ -22,12 +22,20 @@ textures and Media3 color conversion. These are phone-oriented chains:
 
 These A/B/C chains omit the desktop templates' second upscaling stage.
 The models' conditional passes run only when the display needs enlargement.
-Output follows the display's aspect fit and is capped at 1920×1080 (or its
-portrait equivalent); existing higher-resolution input is not downscaled.
+Output follows the display's aspect fit. The selectable caps are 1920×1080 and
+2560×1440 (or their portrait equivalents); existing higher-resolution input is
+not downscaled. Native display up to 2K is the default output policy, while
+enhancement itself remains off until selected.
 Intermediate features remain RGBA16F, including negative CNN activations.
 Texture slots are reused only after their last consumer; total estimated
-working memory, including input/output headroom, is capped at 96 MiB (32 MiB on
-devices Android identifies as low RAM).
+working memory, including input/output headroom, is capped at 96 MiB for 1080p.
+Native/2K output allows 160 MiB on devices reporting at least 5 GB of RAM and
+224 MiB at 7 GB or more; other devices retain 96 MiB. Android low-RAM devices
+always retain the 32 MiB limit. Each graph allocates only the textures it needs.
+The final subpixel reconstruction, display resize, chroma reconstruction and
+transfer decode share a pass, avoiding a full 4K intermediate for 1080p inputs.
+Small display increases also run the model; its native 2× samples are bilinearly
+resampled to the display size. The player reports the actual input/output sizes.
 
 HDR uses passthrough. GL initialization, resource creation, rendering and
 deletion happen on Media3's GL thread. Selection callbacks are generation
