@@ -53,6 +53,7 @@ import com.nuvio.app.features.anilist.AniListStatisticsRepository
 import com.nuvio.app.features.anilist.AniListAuthRepository
 import com.nuvio.app.features.mal.MalAuthSettings
 import com.nuvio.app.features.membership.MemberAccessRepository
+import com.nuvio.app.features.membership.MemberTier
 import com.nuvio.app.features.membership.resolveProfileBackground
 import com.nuvio.app.features.membership.ProfileBackgroundRepository
 import com.nuvio.app.features.profile.components.ActivityHeatmap
@@ -62,6 +63,7 @@ import com.nuvio.app.features.profile.components.ProfilePill
 import com.nuvio.app.features.profile.components.ProfileStatTile
 import com.nuvio.app.features.profile.components.ProfileVerticalBar
 import com.nuvio.app.features.profiles.ActiveProfileMiniAvatar
+import com.nuvio.app.features.profiles.SupporterProfileLabel
 import com.nuvio.app.features.profiles.AvatarRepository
 import com.nuvio.app.features.profiles.ProfileBackgroundAppearanceRepository
 import com.nuvio.app.features.profiles.ProfileBackgroundBackdrop
@@ -177,6 +179,7 @@ fun ProfileScreen(
                 profile = activeProfile,
                 backgroundBrightness = backgroundBrightness,
                 hasBackground = hasIdentityBackground,
+                supporterTier = memberAccess.tier,
                 avatarSlot = {
                     ActiveProfileMiniAvatar(
                         profile = activeProfile,
@@ -263,6 +266,7 @@ private fun IdentityCard(
     profile: NuvioProfile?,
     backgroundBrightness: Float,
     hasBackground: Boolean,
+    supporterTier: MemberTier?,
     avatarSlot: @Composable () -> Unit,
 ) {
     val tokens = MaterialTheme.nuvio
@@ -304,6 +308,7 @@ private fun IdentityCard(
                     }
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(profileName, color = primaryTextColor, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        SupporterProfileLabel(supporterTier, secondaryTextColor)
                         Text(
                             "Lv. ${levelInfo.level} · ${levelInfo.title}",
                             color = if (hasBackground) Color.White else tokens.colors.accent,

@@ -654,7 +654,7 @@ private fun PopupProfileBubble(
             .padding(NuvioTokens.Space.s4),
     ) {
         Box(
-            modifier = Modifier.size(52.dp),
+            modifier = Modifier.size(52.dp).supporterAvatarRing(compact = true),
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -995,6 +995,7 @@ fun ActiveProfileMiniAvatar(
     Box(
         modifier = Modifier
             .size(size.dp)
+            .supporterAvatarRing(compact = size < 40, insetAvatar = true)
             .clip(tokens.shapes.avatar)
             .background(
                 if (avatarImageUrl != null) {

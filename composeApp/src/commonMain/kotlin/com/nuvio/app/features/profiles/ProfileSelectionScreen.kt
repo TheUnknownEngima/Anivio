@@ -353,14 +353,14 @@ private fun ProfileAvatarCard(
             .padding(8.dp),
     ) {
         Box(
-            modifier = Modifier.size(110.dp),
+            modifier = Modifier.size(110.dp).supporterAvatarRing(),
             contentAlignment = Alignment.Center,
         ) {
             if (avatarImageUrl != null) {
                 val bgColor = avatarItem?.bgColor?.let { parseHexColor(it) } ?: avatarColor
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(106.dp)
                         .clip(CircleShape)
                         .background(bgColor.copy(alpha = 0.2f)),
                 )
