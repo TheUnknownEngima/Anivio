@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.nuvio.app.features.discord.DiscordAuth
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
@@ -87,8 +89,19 @@ object PartyRepository {
     private val ignoredWaiting = mutableSetOf<String>()
     private val pendingMemberProfiles = mutableMapOf<String, PartyMember>()
     private var rejoining = false
+    private var chatSessionToken: Long? = null
+    private var sessionProfileIndex: Int? = null
 
     init {
+        scope.launch {
+            combine(ProfileRepository.state, AvatarRepository.avatars, DiscordAuth.uiState) { _, _, _ -> identity() }
+                .distinctUntilChanged().collect { current ->
+                    val party = _state.value.party ?: return@collect
+                    if (current.profileIndex != sessionProfileIndex) {
+                        mutex.withLock { stopSession() }
+                    } else sendProfile(party)
+                }
+        }
         scope.launch {
             AuthRepository.state.collect { auth ->
                 val signedIn = auth is AuthState.Authenticated && !auth.isAnonymous
@@ -245,7 +258,7 @@ object PartyRepository {
                     stopSession()
                     clock.reset()
                     snapshot.serverTimeMs?.let { clock.addSample(it, sentAt) }
-                    startSession(party, snapshot.party?.playback)
+                    startSession(party, snapshot.party?.playback, snapshot.serverTimeMs ?: nowMs())
                     null
                 } catch (error: CancellationException) {
                     throw error
@@ -259,8 +272,13 @@ object PartyRepository {
         }
     }
 
-    private fun startSession(party: ActiveParty, playback: PartyPlayback?) {
-        val activeParty = if (party.isHost) party.copy(sharing = true) else party
+    private fun startSession(party: ActiveParty, playback: PartyPlayback?, startedAtMs: Long) {
+        val profile = identity()
+        sessionProfileIndex = profile.profileIndex
+        val members = party.members.map { member ->
+            if (member.id == party.memberId) member.copy(displayName = profile.displayName, avatarUrl = profile.avatarUrl, avatarColor = profile.avatarColor) else member
+        }
+        val activeParty = party.copy(members = members, sharing = if (party.isHost) true else party.sharing)
         val job = SupervisorJob(scope.coroutineContext[Job])
         val session = CoroutineScope(dispatcher + job)
         val partyChannel = PartyChannel(activeParty.id, activeParty.memberId)
@@ -273,21 +291,21 @@ object PartyRepository {
         waitStartedAt = null
         resumedAt = null
         _playback.value = playback?.takeIf { it.mediaKey == null || it.mediaKey == activeParty.media.key }
+        chatSessionToken = PartyChat.start(PartyChatRoom(activeParty.id, activeParty.memberId, activeParty.members, startedAtMs))
         _state.value = PartyUiState(party = activeParty)
         session.launch {
             runCatching {
                 partyChannel.open(
                     scope = session,
-                    onMessage = { event, payload -> session.launch { onMessage(event, payload) } },
-                    onPresence = { joins, leaves -> session.launch { onPresence(joins, leaves) } },
-                    onConnected = { connected -> session.launch { onConnection(connected) } },
+                    onMessage = { event, payload -> session.launch { if (sessionJob === job) onMessage(event, payload) } },
+                    onPresence = { joins, leaves -> session.launch { if (sessionJob === job) onPresence(joins, leaves) } },
+                    onConnected = { connected -> session.launch { if (sessionJob === job) onConnection(connected) } },
                 )
             }.onFailure { log.w(it) { "Watch party channel failed" } }
         }
         session.launch { heartbeatLoop() }
         session.launch { refineClock() }
         session.launch { coordinatorLoop() }
-        PartyChat.start(PartyChatRoom(activeParty.id, activeParty.memberId, activeParty.members))
     }
 
     private suspend fun stopSession() {
@@ -304,7 +322,9 @@ object PartyRepository {
         _playback.value = null
         _sharedStream.value = null
         _state.value = PartyUiState()
-        PartyChat.stop()
+        PartyChat.stop(chatSessionToken)
+        chatSessionToken = null
+        sessionProfileIndex = null
     }
 
     private fun finish(event: PartyEvent) {
@@ -332,7 +352,7 @@ object PartyRepository {
         _playback.value?.let { current -> runCatching { channel?.send("state", encodePlayback(current)) } }
         if (party.isHost && party.sharing) _sharedStream.value?.let { sendStream(it) }
         requestState(party)
-        PartyChat.refresh()
+        PartyChat.refresh(chatSessionToken)
     }
 
     private suspend fun onMessage(event: String, payload: JsonObject) {
@@ -377,7 +397,7 @@ object PartyRepository {
                     ?.let { decode(it, PartyStream.serializer()) }
                     ?.takeIf { isShareableStreamUrl(it.url) }
             }
-            "chat" -> PartyChat.receive(payload)
+            "chat" -> PartyChat.receive(chatSessionToken, payload)
         }
     }
 
@@ -472,7 +492,7 @@ object PartyRepository {
                 presence = current.presence.filterKeys { key -> snapshot.members.any { it.id == key } },
             )
         }
-        _state.value.party?.members?.let(PartyChat::updateMembers)
+        _state.value.party?.members?.let { PartyChat.updateMembers(chatSessionToken, it) }
         if (info.media.key != _state.value.party?.media?.key) applyMedia(info.media, info.playback)
         info.playback?.let(::accept)
     }
@@ -567,7 +587,7 @@ object PartyRepository {
             applySnapshot(snapshot)
             // Realtime is the fast path. History polling is the reliable fallback for a
             // broadcast missed while a phone was reconnecting or in the background.
-            PartyChat.refresh()
+            PartyChat.refresh(chatSessionToken)
         }
     }
 
@@ -636,7 +656,7 @@ object PartyRepository {
                     }
                     val playback = _playback.value
                     stopSession()
-                    startSession(rejoined, playback)
+                    startSession(rejoined, playback, snapshot?.serverTimeMs ?: nowMs())
                 }
             } finally {
                 rejoining = false
@@ -660,7 +680,7 @@ object PartyRepository {
             null
         }
 
-    private suspend fun identity(): PartyIdentity {
+    private fun identity(): PartyIdentity {
         val profile = ProfileRepository.state.value.activeProfile
         val catalogAvatar = profile?.avatarId?.let { avatarId ->
             AvatarRepository.avatars.value.firstOrNull { it.id == avatarId }
@@ -717,18 +737,16 @@ object PartyRepository {
         updateParty { current ->
             current.copy(members = current.members.map { if (it.id == member.id) member else it })
         }
-        _state.value.party?.members?.let(PartyChat::updateMembers)
+        _state.value.party?.members?.let { PartyChat.updateMembers(chatSessionToken, it) }
     }
 
-    internal suspend fun broadcastChat(message: PartyChatPayload) {
-        val party = _state.value.party ?: return
-        if (message.memberId != party.memberId) return
-        val payload = PartyApi.json.encodeToJsonElement(
-            PartyChatPayload.serializer(),
-            // `mine` is response-specific. Other members must not render this as their own.
-            message.copy(mine = false),
-        ).jsonObject
-        runCatching { channel?.send("chat", payload) }
+    internal suspend fun broadcastChat(message: PartyChatPayload, partyId: String, token: Long) = withContext(dispatcher) {
+        val party = _state.value.party ?: return@withContext
+        if (party.id != partyId || chatSessionToken != token || message.memberId != party.memberId) return@withContext
+        val target = channel ?: return@withContext
+        val payload = PartyApi.json.encodeToJsonElement(PartyChatPayload.serializer(), message.copy(mine = false)).jsonObject
+        runCatching { target.send("chat", payload) }
+        Unit
     }
 
     private fun encodePlayback(playback: PartyPlayback): JsonObject =

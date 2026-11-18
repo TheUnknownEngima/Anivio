@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,42 +48,44 @@ internal fun PlayerSidePanel(
     visible: Boolean,
     onDismiss: () -> Unit,
     width: Dp = 520.dp,
+    modal: Boolean = true,
+    dockAtStart: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val tokens = MaterialTheme.nuvio
     val backgroundInteraction = remember { MutableInteractionSource() }
     val panelInteraction = remember { MutableInteractionSource() }
+    val direction = (if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1) * (if (dockAtStart) -1 else 1)
 
     PlatformBackHandler(enabled = visible, onBack = onDismiss)
 
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(160)),
+        exit = fadeOut(tween(200)),
         modifier = modifier,
     ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.34f))
-                .clickable(
+                .then(if (modal) Modifier.background(Color.Black.copy(alpha = 0.34f)).clickable(
                     interactionSource = backgroundInteraction,
                     indication = null,
                     onClick = onDismiss,
-                ),
+                ) else Modifier),
         ) {
             val resolvedWidth = minOf(maxWidth, width)
-            val shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+            val shape = if (dockAtStart) RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
+                else RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
 
-            AnimatedVisibility(
-                visible = visible,
-                enter = slideInHorizontally(tween(250)) { it },
-                exit = slideOutHorizontally(tween(200)) { it },
-                modifier = Modifier.align(Alignment.CenterEnd),
-            ) {
                 Column(
                     modifier = Modifier
+                        .align(if (dockAtStart) Alignment.CenterStart else Alignment.CenterEnd)
+                        .animateEnterExit(
+                            enter = slideInHorizontally(tween(250)) { it * direction },
+                            exit = slideOutHorizontally(tween(200)) { it * direction },
+                        )
                         .width(resolvedWidth)
                         .fillMaxHeight()
                         .clip(shape)
@@ -93,7 +97,6 @@ internal fun PlayerSidePanel(
                         ),
                     content = content,
                 )
-            }
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -14,6 +15,9 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.app.features.p2p.P2pStreamingState
@@ -27,7 +31,12 @@ import com.nuvio.app.core.ui.NuvioStatusModal
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
+internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
+    partyPanelWidth: Dp,
+    partyPanelInset: Dp,
+    dockPartyPanel: Boolean,
+    partyPanelAllowed: Boolean,
+) {
     val runtime = this
     val isInPip = rememberIsInPictureInPicture()
     val displayedPositionMs = scrubbingPositionMs ?: playbackSnapshot.positionMs
@@ -118,6 +127,8 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .padding(start = partyPanelInset)
+            .clipToBounds()
             .onSizeChanged { layoutSize = it }
             .playerSurfaceTapGestures(
                 layoutSize = layoutSize,
@@ -171,7 +182,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
                 playWhenReady = shouldPlay,
                 initialPositionMs = activeInitialPositionMs.takeIf { it > 0L },
                 initialPositionRequestKey = initialPositionRequestKey,
-                resizeMode = resizeMode,
+                resizeMode = if (partyPanelInset > 0.dp) PlayerResizeMode.Fit else resizeMode,
                 playbackEngine = playbackEngineOverride,
                 onInitialPositionHandled = { key, handled ->
                     if (active.value && playbackKey == activePlaybackKey && key == currentInitialPositionRequestKey()) {
@@ -251,7 +262,9 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi() {
             p2pRebufferProgress = p2pRebufferProgress,
         )
         RenderPlayerModals(displayedPositionMs = displayedPositionMs)
-        RenderParty(runtime = runtime)
+    }
+    Box(Modifier.fillMaxSize()) {
+        RenderParty(runtime = runtime, panelWidth = partyPanelWidth, modal = !dockPartyPanel, panelAllowed = partyPanelAllowed)
     }
 }
 

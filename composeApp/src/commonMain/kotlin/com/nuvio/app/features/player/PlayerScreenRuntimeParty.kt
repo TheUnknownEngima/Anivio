@@ -286,7 +286,7 @@ private fun PlayerScreenRuntime.clearPartyNudge(playback: PartyPlayback? = Party
 }
 
 @Composable
-internal fun BoxScope.RenderParty(runtime: PlayerScreenRuntime) {
+internal fun BoxScope.RenderParty(runtime: PlayerScreenRuntime, panelWidth: androidx.compose.ui.unit.Dp, modal: Boolean, panelAllowed: Boolean) {
     val partyState by PartyRepository.state.collectAsStateWithLifecycle()
     val playback by PartyRepository.playback.collectAsStateWithLifecycle()
     val unread by PartyChat.unread.collectAsStateWithLifecycle()
@@ -320,7 +320,9 @@ internal fun BoxScope.RenderParty(runtime: PlayerScreenRuntime) {
             )
         }
         PartyPanel(
-            visible = showPartyPanel,
+            visible = showPartyPanel && panelAllowed,
+            width = panelWidth,
+            modal = modal,
             state = partyState,
             showChat = showPartyChat,
             onShowChatChange = { showPartyChat = it },

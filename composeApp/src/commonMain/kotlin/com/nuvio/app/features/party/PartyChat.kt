@@ -1,11 +1,15 @@
 package com.nuvio.app.features.party
 
 import co.touchlab.kermit.Logger
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import com.nuvio.app.core.sync.SyncClientIdentity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,7 +45,25 @@ internal data class PartyChatRoom(
     val partyId: String,
     val memberId: String,
     val members: List<PartyMember>,
+    val startedAtMs: Long,
 )
+
+/** A room id can be reused. A local join token can never be reused. */
+internal class PartyChatSessionGuard {
+    private val generation = atomic(0L)
+    fun start(): Long = generation.incrementAndGet()
+    fun current(): Long = generation.value
+    fun isCurrent(token: Long?): Boolean = token != null && token > 0 && token == generation.value
+    fun stop(token: Long?): Boolean = token != null && token > 0 && generation.compareAndSet(token, token + 1)
+}
+
+internal fun currentSessionChat(room: PartyChatRoom, messages: List<PartyChatPayload>): List<PartyChatPayload> =
+    messages.filter { it.sentAt >= room.startedAtMs }
+
+internal fun PartyChatMessage.withCurrentPartyProfile(members: List<PartyMember>): PartyChatMessage {
+    val member = members.firstOrNull { it.id == memberId } ?: return this
+    return copy(name = member.displayName, avatarUrl = member.avatarUrl, avatarColor = member.avatarColor)
+}
 
 internal data class PartyChatMerge(
     val messages: List<PartyChatMessage>,
@@ -59,16 +81,26 @@ object PartyChat {
 
     private val _unread = MutableStateFlow(0)
     val unread: StateFlow<Int> = _unread.asStateFlow()
+    private val _activeSession = MutableStateFlow<Long?>(null)
+    val activeSession: StateFlow<Long?> = _activeSession.asStateFlow()
 
     val draft = MutableStateFlow("")
 
+    private val stateLock = SynchronizedObject()
+    private val sessions = PartyChatSessionGuard()
     private var room: PartyChatRoom? = null
+    private var roomToken = 0L
+    private var refreshJob: Job? = null
     private val ownMemberIds = mutableSetOf<String>()
     private var loaded = false
+    private var historyCursor: Long? = null
     private var open = false
 
-    fun setOpen(value: Boolean) {
-        scope.launch {
+    private fun activeRoom(token: Long): PartyChatRoom? = room.takeIf { roomToken == token && sessions.isCurrent(token) }
+
+    fun setOpen(value: Boolean, token: Long? = _activeSession.value) {
+        synchronized(stateLock) {
+            if (token == null || activeRoom(token) == null) return
             open = value
             if (value) _unread.value = 0
         }
@@ -77,160 +109,157 @@ object PartyChat {
     fun send(text: String) {
         val body = text.trim().take(MAX_LENGTH)
         if (body.isEmpty()) return
+        val token = sessions.current()
         scope.launch {
-            val current = room ?: return@launch
-            val self = current.members.firstOrNull { it.id == current.memberId }
-            val clientId = newClientId()
-            val message = PartyChatMessage(
-                key = clientId,
-                id = null,
-                memberId = current.memberId,
-                name = self?.displayName.orEmpty(),
-                avatarUrl = self?.avatarUrl,
-                avatarColor = self?.avatarColor,
-                body = body,
-                sentAt = PartyRepository.nowMs(),
-                mine = true,
-                clientId = clientId,
-                status = PartyChatStatus.Sending,
-            )
-            _messages.update { it + message }
-            deliver(current.partyId, message)
+            val pending = synchronized(stateLock) {
+                val current = activeRoom(token) ?: return@launch
+                val self = current.members.firstOrNull { it.id == current.memberId }
+                val clientId = newClientId()
+                val message = PartyChatMessage(
+                    key = clientId, id = null, memberId = current.memberId,
+                    name = self?.displayName.orEmpty(), avatarUrl = self?.avatarUrl,
+                    avatarColor = self?.avatarColor, body = body, sentAt = PartyRepository.nowMs(),
+                    mine = true, clientId = clientId, status = PartyChatStatus.Sending,
+                )
+                _messages.value = _messages.value + message
+                current.partyId to message
+            }
+            deliver(token, pending.first, pending.second)
         }
     }
 
     fun retry(key: String) {
+        val token = sessions.current()
         scope.launch {
-            val target = room?.partyId ?: return@launch
-            val message = _messages.value.firstOrNull { it.key == key && it.status == PartyChatStatus.Failed } ?: return@launch
-            setStatus(key, PartyChatStatus.Sending)
-            deliver(target, message)
-        }
-    }
-
-    internal fun start(next: PartyChatRoom) {
-        scope.launch {
-            // A watch party chat belongs to the live session, not a reusable room code. Starting
-            // a session must therefore never paint messages left over from an earlier session.
-            reset()
-            room = next
-            ownMemberIds += next.memberId
-        }
-    }
-
-    internal fun stop() {
-        scope.launch { reset() }
-    }
-
-    internal fun refresh() {
-        scope.launch {
-            sync()
-            val target = room?.partyId ?: return@launch
-            _messages.value.filter { it.status == PartyChatStatus.Failed }.forEach { message ->
-                setStatus(message.key, PartyChatStatus.Sending)
-                deliver(target, message)
+            val pending = synchronized(stateLock) {
+                val current = activeRoom(token) ?: return@launch
+                val message = _messages.value.firstOrNull { it.key == key && it.status == PartyChatStatus.Failed } ?: return@launch
+                _messages.value = _messages.value.map { if (it.key == key && it.id == null) it.copy(status = PartyChatStatus.Sending) else it }
+                current.partyId to message
             }
+            deliver(token, pending.first, pending.second)
         }
     }
 
-    internal fun updateMembers(members: List<PartyMember>) {
-        scope.launch {
-            room = room?.copy(members = members)
+    internal fun start(next: PartyChatRoom): Long = synchronized(stateLock) {
+        val token = sessions.start()
+        reset()
+        room = next
+        roomToken = token
+        ownMemberIds += next.memberId
+        _activeSession.value = token
+        token
+    }
+
+    internal fun stop(token: Long?) = synchronized(stateLock) {
+        if (sessions.stop(token)) reset()
+    }
+
+    internal fun refresh(token: Long?) {
+        val request = token ?: return
+        synchronized(stateLock) {
+          if (activeRoom(request) == null || refreshJob?.isActive == true) return
+          refreshJob = scope.launch {
+            sync(request)
+            val pending = synchronized(stateLock) {
+                val current = activeRoom(request) ?: return@launch
+                current.partyId to _messages.value.filter { it.status == PartyChatStatus.Failed }
+            }
+            pending.second.forEach { message ->
+                setStatus(request, message.key, PartyChatStatus.Sending)
+                deliver(request, pending.first, message)
+            }
+          }
         }
     }
 
-    internal fun receive(payload: JsonObject) {
+    internal fun updateMembers(token: Long?, members: List<PartyMember>) = synchronized(stateLock) {
+        if (token == null || activeRoom(token) == null) return@synchronized
+        room = room?.copy(members = members)
+        _messages.value = _messages.value.map { it.withCurrentPartyProfile(members) }
+    }
+
+    internal fun receive(token: Long?, payload: JsonObject) {
+        if (!sessions.isCurrent(token)) return
+        val request = token ?: return
         scope.launch {
-            if (room == null) return@launch
             val message = runCatching { PartyApi.json.decodeFromJsonElement(PartyChatPayload.serializer(), payload) }
                 .getOrNull() ?: return@launch
-            apply(listOf(message), replaceOlder = false, notify = true)
+            apply(request, listOf(message), replaceOlder = false, notify = true)
         }
     }
 
-    private suspend fun sync() {
+    private suspend fun sync(token: Long) {
         syncLock.withLock {
-            val target = room?.partyId ?: return
-            val after = if (loaded) _messages.value.lastOrNull { it.id != null }?.id else null
-            val history = try {
-                PartyApi.listMessages(target, SyncClientIdentity.currentClientId(), after)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                log.w(error) { "Chat history failed" }
-                return
+            val request = synchronized(stateLock) {
+                val current = activeRoom(token) ?: return
+                current.partyId to if (loaded) historyCursor else null
             }
-            if (target != room?.partyId || history.error != null) return
-            val firstLoad = !loaded
-            loaded = true
-            apply(
-                payloads = history.messages,
-                replaceOlder = after != null && history.messages.size >= HISTORY_LIMIT,
-                notify = !firstLoad,
-            )
+            val history = try {
+                PartyApi.listMessages(request.first, SyncClientIdentity.currentClientId(), request.second)
+            } catch (error: CancellationException) { throw error }
+            catch (error: Throwable) { log.w(error) { "Chat history failed" }; return }
+            val firstLoad = synchronized(stateLock) {
+                if (activeRoom(token) == null || history.error != null) return
+                val firstLoad = !loaded
+                loaded = true
+                historyCursor = maxOf(historyCursor ?: 0L, history.messages.maxOfOrNull { it.id } ?: 0L).takeIf { it > 0 }
+                firstLoad
+            }
+            apply(token, history.messages, replaceOlder = request.second != null && history.messages.size >= HISTORY_LIMIT, notify = !firstLoad)
         }
     }
 
-    private suspend fun deliver(target: String, message: PartyChatMessage) {
+    private suspend fun deliver(token: Long, target: String, message: PartyChatMessage) {
+        if (!sessions.isCurrent(token)) return
         val result = try {
             PartyApi.sendMessage(target, SyncClientIdentity.currentClientId(), message.body, message.key)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            log.w(error) { "Chat message failed" }
-            null
-        }
-        if (target != room?.partyId) return
+        } catch (error: CancellationException) { throw error }
+        catch (error: Throwable) { log.w(error) { "Chat message failed" }; null }
+        if (!sessions.isCurrent(token)) return
         val sent = result?.message
-        if (sent == null) {
-            setStatus(message.key, PartyChatStatus.Failed)
-            return
-        }
-        // Do not rely solely on the RPC/database hook to emit the realtime event. Sending the
-        // confirmed payload from the client also keeps custom servers and reconnecting rooms in
-        // sync; message ids make duplicate deliveries harmless.
-        PartyRepository.broadcastChat(sent)
-        apply(listOf(sent), replaceOlder = false, notify = false)
+        if (sent == null) { setStatus(token, message.key, PartyChatStatus.Failed); return }
+        PartyRepository.broadcastChat(sent, target, token)
+        apply(token, listOf(sent), replaceOlder = false, notify = false)
     }
 
-    private fun apply(payloads: List<PartyChatPayload>, replaceOlder: Boolean, notify: Boolean) {
+    private fun apply(token: Long, payloads: List<PartyChatPayload>, replaceOlder: Boolean, notify: Boolean) = synchronized(stateLock) {
+        val current = activeRoom(token) ?: return@synchronized
         val result = mergePartyChat(
             current = _messages.value,
-            incoming = payloads.map { it.toMessage() },
-            replaceOlder = replaceOlder,
-            limit = MESSAGE_LIMIT,
+            incoming = currentSessionChat(current, payloads).map { it.toMessage().withCurrentPartyProfile(current.members) },
+            replaceOlder = replaceOlder, limit = MESSAGE_LIMIT,
         )
         _messages.value = result.messages
-        if (!notify || open) return
+        if (!notify || open) return@synchronized
         val fromOthers = result.added.filterNot { it.mine }
-        if (fromOthers.isEmpty()) return
-        _unread.update { it + fromOthers.size }
+        if (fromOthers.isNotEmpty()) _unread.value += fromOthers.size
     }
 
-    private fun setStatus(key: String, status: PartyChatStatus) {
-        _messages.update { list -> list.map { if (it.key == key && it.id == null) it.copy(status = status) else it } }
+    private fun setStatus(token: Long, key: String, status: PartyChatStatus) = synchronized(stateLock) {
+        if (activeRoom(token) == null) return@synchronized
+        _messages.value = _messages.value.map { if (it.key == key && it.id == null) it.copy(status = status) else it }
     }
 
     private fun reset() {
+        refreshJob?.cancel()
+        refreshJob = null
         room = null
+        roomToken = 0L
+        _activeSession.value = null
         ownMemberIds.clear()
         loaded = false
+        historyCursor = null
+        open = false
         draft.value = ""
         _messages.value = emptyList()
         _unread.value = 0
     }
 
     private fun PartyChatPayload.toMessage() = PartyChatMessage(
-        key = "id:$id",
-        id = id,
-        memberId = memberId,
-        name = name,
-        avatarUrl = avatarUrl,
-        avatarColor = avatarColor,
-        body = body,
-        sentAt = sentAt,
-        mine = mine || memberId in ownMemberIds,
-        clientId = clientId,
+        key = "id:$id", id = id, memberId = memberId, name = name, avatarUrl = avatarUrl,
+        avatarColor = avatarColor, body = body, sentAt = sentAt,
+        mine = mine || memberId in ownMemberIds, clientId = clientId,
     )
 
     private fun newClientId(): String =

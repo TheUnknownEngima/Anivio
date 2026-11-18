@@ -88,26 +88,9 @@ fun PartyScreen(
     onBack: () -> Unit,
     onWatch: (PartyMedia) -> Unit,
 ) {
-    val state by PartyRepository.state.collectAsStateWithLifecycle()
-    val companion by PartyCompanion.state.collectAsStateWithLifecycle()
-    val linkable = initialCode.isEmpty() && state.party == null
-    if (linkable) {
-        DisposableEffect(Unit) {
-            PartyCompanion.start()
-            onDispose { PartyCompanion.leave() }
-        }
-    }
-    AnimatedContent(
-        targetState = linkable && companion.active,
-        transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(150)) },
-        modifier = Modifier.fillMaxSize(),
-    ) { linked ->
-        if (linked) {
-            PartyCompanionScreen(onBack = onBack)
-        } else {
-            PartyHome(initialCode = initialCode, onBack = onBack, onWatch = onWatch)
-        }
-    }
+    // Settings is an explicit invitation/join flow. Do not discover and reattach an old
+    // profile-linked companion room merely because this screen was opened.
+    PartyHome(initialCode = initialCode, onBack = onBack, onWatch = onWatch)
 }
 
 @Composable

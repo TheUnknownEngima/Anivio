@@ -1,5 +1,7 @@
 package com.nuvio.app.features.player
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.asPaddingValues
@@ -82,7 +84,17 @@ internal fun PlayerScreenContent(args: PlayerScreenArgs) {
     ) {
         val density = LocalDensity.current
         val horizontalSafePadding = playerHorizontalSafePadding()
-        val metrics = remember(maxWidth) { PlayerLayoutMetrics.fromWidth(maxWidth) }
+        val isInPip = rememberIsInPictureInPicture()
+        val dockPartyPanel = !isInPip && maxWidth > maxHeight
+        val partyPanelWidth = minOf(420.dp, maxWidth * 0.45f)
+        val animatedPartyInset by animateDpAsState(
+            targetValue = if (runtime.showPartyPanel && dockPartyPanel) partyPanelWidth else 0.dp,
+            animationSpec = tween(if (runtime.showPartyPanel) 250 else 200),
+            label = "partyPanelInset",
+        )
+        val partyInset = if (dockPartyPanel) animatedPartyInset else 0.dp
+        val playerWidth = maxWidth - partyInset
+        val metrics = remember(playerWidth) { PlayerLayoutMetrics.fromWidth(playerWidth) }
 
         runtime.scope = rememberCoroutineScope()
         runtime.hapticFeedback = LocalHapticFeedback.current
@@ -152,6 +164,6 @@ internal fun PlayerScreenContent(args: PlayerScreenArgs) {
             ),
         )
         runtime.BindPlayerRuntimeEffects()
-        runtime.RenderPlayerRuntimeUi()
+        runtime.RenderPlayerRuntimeUi(partyPanelWidth, partyInset, dockPartyPanel, !isInPip)
     }
 }

@@ -128,13 +128,14 @@ internal fun PartyChatContent(
     modifier: Modifier = Modifier,
 ) {
     val messages by PartyChat.messages.collectAsStateWithLifecycle()
+    val session by PartyChat.activeSession.collectAsStateWithLifecycle()
     val rows = remember(messages) { partyChatRows(messages).asReversed() }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-    DisposableEffect(Unit) {
-        PartyChat.setOpen(true)
+    DisposableEffect(session) {
+        PartyChat.setOpen(true, session)
         onDispose {
-            PartyChat.setOpen(false)
+            PartyChat.setOpen(false, session)
             keyboard?.hide()
         }
     }

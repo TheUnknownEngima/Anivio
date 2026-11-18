@@ -58,6 +58,7 @@ object PartyCompanion {
     private var profileIndex: Int? = null
     private var channel: PartyChannel? = null
     private var session: Job? = null
+    private var chatSessionToken: Long? = null
 
     init {
         scope.launch {
@@ -103,7 +104,7 @@ object PartyCompanion {
                 media = info.media,
             ),
         )
-        PartyChat.start(PartyChatRoom(info.id, memberId, snapshot.members))
+        chatSessionToken = PartyChat.start(PartyChatRoom(info.id, memberId, snapshot.members, snapshot.serverTimeMs ?: PartyRepository.nowMs()))
         val job = SupervisorJob(scope.coroutineContext[Job])
         val sessionScope = CoroutineScope(dispatcher + job)
         val partyChannel = PartyChannel(info.id, memberId, PartyChannel.COMPANION_EVENTS)
@@ -113,8 +114,8 @@ object PartyCompanion {
             runCatching {
                 partyChannel.open(
                     scope = sessionScope,
-                    onMessage = { event, payload -> sessionScope.launch { onMessage(event, payload) } },
-                    onConnected = { connected -> sessionScope.launch { onConnection(connected) } },
+                    onMessage = { event, payload -> sessionScope.launch { if (session === job) onMessage(event, payload) } },
+                    onConnected = { connected -> sessionScope.launch { if (session === job) onConnection(connected) } },
                 )
             }.onFailure { log.w(it) { "Companion channel failed" } }
         }
@@ -129,7 +130,8 @@ object PartyCompanion {
         when (snapshot.error) {
             null -> {
                 updateLink { it.copy(members = snapshot.members, media = snapshot.party?.media ?: it.media) }
-                PartyChat.refresh()
+                PartyChat.updateMembers(chatSessionToken, snapshot.members)
+                PartyChat.refresh(chatSessionToken)
             }
             ENDED -> scope.launch { end(PartyCompanionError.Ended) }
             else -> scope.launch { end(PartyCompanionError.SeatLeft) }
@@ -139,7 +141,12 @@ object PartyCompanion {
     private fun onMessage(event: String, payload: JsonObject) {
         val link = _state.value.link ?: return
         when (event) {
-            "chat" -> PartyChat.receive(payload)
+            "chat" -> PartyChat.receive(chatSessionToken, payload)
+            "profile" -> {
+                val member = runCatching { PartyApi.json.decodeFromJsonElement(PartyMember.serializer(), payload) }.getOrNull() ?: return
+                updateLink { current -> current.copy(members = current.members.map { if (it.id == member.id) member else it }) }
+                _state.value.link?.members?.let { PartyChat.updateMembers(chatSessionToken, it) }
+            }
             "media" -> payload["media"]
                 ?.let { runCatching { PartyApi.json.decodeFromJsonElement(PartyMedia.serializer(), it) }.getOrNull() }
                 ?.let { media -> updateLink { it.copy(media = media) } }
@@ -156,7 +163,8 @@ object PartyCompanion {
         session = null
         channel?.close()
         channel = null
-        if (_state.value.link != null) PartyChat.stop()
+        PartyChat.stop(chatSessionToken)
+        chatSessionToken = null
         _state.value = PartyCompanionState(error = error)
     }
 
