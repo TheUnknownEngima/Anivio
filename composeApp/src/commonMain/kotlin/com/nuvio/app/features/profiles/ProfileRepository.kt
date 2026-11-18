@@ -222,6 +222,8 @@ object ProfileRepository {
         avatarId: String? = null,
         avatarUrl: String? = null,
         usesPrimaryAddons: Boolean = false,
+        profileBackgroundId: String? = null,
+        profileBackgroundUrl: String? = null,
     ) {
         val existing = _state.value.profiles
         val nextIndex = ((1..MAX_PROFILES).toSet() - existing.map { it.profileIndex }.toSet()).minOrNull() ?: return
@@ -245,6 +247,8 @@ object ProfileRepository {
             usesPrimaryAddons = usesPrimaryAddons,
             avatarId = avatarId,
             avatarUrl = avatarUrl,
+            profileBackgroundId = profileBackgroundId,
+            profileBackgroundUrl = profileBackgroundUrl,
         )
 
         pushProfiles(allPayloads)

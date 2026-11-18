@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,9 +24,13 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 
 private const val ProfileBackgroundBucket = "membership-profile-backgrounds"
 
@@ -56,15 +61,17 @@ object ProfileBackgroundRepository {
         hydrateFromCacheIfNeeded()
         if (remoteLoaded || loadJob?.isActive == true) return
         loadJob = scope.launch {
-            val remoteItems = try {
-                SupabaseProvider.client.postgrest
-                    .rpc("get_member_profile_background_catalog")
-                    .decodeList<SupabaseProfileBackgroundCatalogItem>()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                log.w(error) { "Unable to load supporter profile backgrounds" }
-                null
+            val remote = async {
+                try {
+                    SupabaseProvider.client.postgrest
+                        .rpc("get_member_profile_background_catalog")
+                        .decodeList<SupabaseProfileBackgroundCatalogItem>()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    log.w(error) { "Unable to load supporter profile backgrounds" }
+                    null
+                }
             }
             val animeItems = try {
                 fetchAnimeBackgrounds()
@@ -75,6 +82,8 @@ object ProfileBackgroundRepository {
                 emptyList()
             }
             animeCatalog = animeItems
+            publishCatalog()
+            val remoteItems = remote.await()
             if (remoteItems != null) {
                 remoteCatalog = remoteItems
                 saveCachedCatalog(remoteItems)
@@ -216,21 +225,25 @@ object ProfileBackgroundRepository {
     }
 
     private suspend fun fetchAnimeBackgrounds(): List<ProfileBackgroundCatalogItem> {
-        val variables = ProfileBannerSources.indices.joinToString(separator = ", ") { "\$s$it: String" }
-        val selections = ProfileBannerSources.indices.joinToString(separator = "\n") { index ->
-            "b$index: Media(search: \$s$index, type: ANIME) { id bannerImage }"
+        val query = """
+            query (${'$'}ids: [Int!]!) {
+              Page(perPage: 50) { media(id_in: ${'$'}ids, type: ANIME, isAdult: false) { id bannerImage } }
+            }
+        """.trimIndent()
+        val variables = buildJsonObject {
+            putJsonArray("ids") { ProfileBannerSources.forEach { add(JsonPrimitive(it.mediaId)) } }
         }
-        val query = "query ($variables) {\n$selections\n}"
-        val variablesJson = kotlinx.serialization.json.buildJsonObject {
-            ProfileBannerSources.forEachIndexed { index, source -> put("s$index", source.searchTerm) }
-        }
-        val data = AniListClient.query(query, variablesJson)
-        return ProfileBannerSources.mapIndexedNotNull { index, source ->
-            val media = data["b$index"] as? JsonObject ?: return@mapIndexedNotNull null
-            val imageUrl = media["bannerImage"]?.jsonPrimitive?.contentOrNull ?: return@mapIndexedNotNull null
-            val mediaId = media["id"]?.jsonPrimitive?.contentOrNull ?: return@mapIndexedNotNull null
+        val data = AniListClient.query(query, variables)
+        val entries = (data["Page"] as? JsonObject)?.get("media") as? JsonArray ?: return emptyList()
+        val urlsById = entries.filterIsInstance<JsonObject>().mapNotNull { media ->
+            val id = media["id"]?.jsonPrimitive?.intOrNull ?: return@mapNotNull null
+            val url = media["bannerImage"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            id to url
+        }.toMap()
+        return ProfileBannerSources.mapNotNull { source ->
+            val imageUrl = urlsById[source.mediaId] ?: return@mapNotNull null
             ProfileBackgroundCatalogItem(
-                id = "anilist-banner-$mediaId",
+                id = "anilist-banner-${source.mediaId}",
                 displayName = source.displayName,
                 landscapeImageUrl = imageUrl,
                 assetVersion = 1,
@@ -266,20 +279,33 @@ object ProfileBackgroundRepository {
                 .also { MemberAssetStorage.saveProfileBackground(cacheKey, it) }
 }
 
-private data class ProfileBannerSource(val displayName: String, val searchTerm: String)
+private data class ProfileBannerSource(val displayName: String, val mediaId: Int)
 
 /** A deliberately varied set of anime backdrops, resolved live so the art stays official and sharp. */
 private val ProfileBannerSources = listOf(
-    ProfileBannerSource("Frieren", "Sousou no Frieren"),
-    ProfileBannerSource("The Apothecary Diaries", "Kusuriya no Hitorigoto"),
-    ProfileBannerSource("Solo Leveling", "Ore dake Level Up na Ken"),
-    ProfileBannerSource("Jujutsu Kaisen", "Jujutsu Kaisen"),
-    ProfileBannerSource("Demon Slayer", "Kimetsu no Yaiba"),
-    ProfileBannerSource("SPY x FAMILY", "SPY x FAMILY"),
-    ProfileBannerSource("Chainsaw Man", "Chainsaw Man"),
-    ProfileBannerSource("Attack on Titan", "Shingeki no Kyojin"),
-    ProfileBannerSource("Bleach", "Bleach"),
-    ProfileBannerSource("Mushoku Tensei", "Mushoku Tensei"),
+    ProfileBannerSource("Frieren", 154587),
+    ProfileBannerSource("The Apothecary Diaries", 161645),
+    ProfileBannerSource("Solo Leveling", 151807),
+    ProfileBannerSource("Jujutsu Kaisen", 113415),
+    ProfileBannerSource("Demon Slayer", 101922),
+    ProfileBannerSource("SPY x FAMILY", 140960),
+    ProfileBannerSource("Chainsaw Man", 127230),
+    ProfileBannerSource("Attack on Titan", 16498),
+    ProfileBannerSource("Bleach", 269),
+    ProfileBannerSource("Mushoku Tensei", 108465),
+    ProfileBannerSource("Violet Evergarden", 21827),
+    ProfileBannerSource("Your Name.", 21519),
+    ProfileBannerSource("Suzume", 142770),
+    ProfileBannerSource("Weathering With You", 106286),
+    ProfileBannerSource("A Silent Voice", 20954),
+    ProfileBannerSource("86 Eighty-Six", 116589),
+    ProfileBannerSource("Bocchi the Rock!", 130003),
+    ProfileBannerSource("Blue Box", 170942),
+    ProfileBannerSource("Vinland Saga", 101348),
+    ProfileBannerSource("Cowboy Bebop", 1),
+    ProfileBannerSource("Mob Psycho 100", 21507),
+    ProfileBannerSource("Dandadan", 171018),
+    ProfileBannerSource("A Place Further than the Universe", 99426),
 )
 
 @Serializable

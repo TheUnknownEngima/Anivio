@@ -2,6 +2,7 @@ package com.nuvio.app.features.tmdb
 
 import co.touchlab.kermit.Logger
 import com.nuvio.app.features.addons.httpGetText
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -27,6 +28,29 @@ object TmdbArtworkSource {
 
     private val log = Logger.withTag("TmdbArtworkSource")
     private val json = Json { ignoreUnknownKeys = true }
+
+    /** Wide images for an already resolved movie or TV series. */
+    internal suspend fun backdropUrls(tmdbId: String, isMovie: Boolean): List<String> {
+        val settings = TmdbSettingsRepository.snapshot()
+        if (!settings.enabled || !settings.hasApiKey || tmdbId.toIntOrNull() == null) return emptyList()
+        val type = if (isMovie) "movie" else "tv"
+        val url = buildTmdbUrl("$type/$tmdbId/images", settings.apiKey.trim())
+        return try {
+            json.decodeFromString<TmdbArtworkImagesResponse>(httpGetText(url)).backdrops
+                .sortedWith(
+                    compareBy<TmdbArtworkImage> { !it.language.isNullOrBlank() }
+                        .thenByDescending { it.voteAverage ?: 0.0 }
+                        .thenByDescending { it.width ?: 0 },
+                )
+                .mapNotNull { imageUrl(it.filePath, BACKDROP_SIZE) }
+                .distinct()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            log.w { "TMDB backdrop lookup failed for $type/$tmdbId" }
+            emptyList()
+        }
+    }
 
     suspend fun artwork(
         tmdbId: String,

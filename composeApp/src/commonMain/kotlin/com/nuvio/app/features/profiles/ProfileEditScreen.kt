@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -90,6 +91,7 @@ fun ProfileEditScreen(
     var avatarUrl by rememberSaveable { mutableStateOf(currentProfile?.avatarUrl.orEmpty()) }
     var selectedBackgroundId by rememberSaveable { mutableStateOf(currentProfile?.profileBackgroundId) }
     var selectedBackgroundUrl by rememberSaveable { mutableStateOf(currentProfile?.profileBackgroundUrl) }
+    var showBannerBrowser by rememberSaveable { mutableStateOf(false) }
     var backgroundBrightness by rememberSaveable(currentProfile?.profileIndex) {
         mutableFloatStateOf(
             currentProfile?.profileIndex
@@ -103,17 +105,13 @@ fun ProfileEditScreen(
     var showPinSetup by remember { mutableStateOf(false) }
     var showPinClear by remember { mutableStateOf(false) }
     val backgroundCatalog by ProfileBackgroundRepository.catalog.collectAsStateWithLifecycle()
-    // Keep appearance controls discoverable for every existing profile. The catalog itself can
-    // still apply its own membership rules, but hiding this entire section made saved banners look
-    // like the feature had disappeared.
-    val canChooseBackground = !isNew
 
     val avatars by AvatarRepository.avatars.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
         AvatarRepository.refreshAvatars()
     }
-    LaunchedEffect(canChooseBackground) {
-        if (canChooseBackground) ProfileBackgroundRepository.preloadLandscapeImages()
+    LaunchedEffect(Unit) {
+        ProfileBackgroundRepository.preloadLandscapeImages()
     }
     LaunchedEffect(isNew, avatars, selectedAvatarId, avatarUrl) {
         if (isNew && avatarUrl.isBlank() && selectedAvatarId == null && avatars.isNotEmpty()) {
@@ -213,32 +211,37 @@ fun ProfileEditScreen(
             }
         }
 
-        if (canChooseBackground) {
-            item {
-                NuvioSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text(
-                            text = stringResource(Res.string.profile_choose_background),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = stringResource(Res.string.profile_background_member_note),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        ProfileBackgroundPicker(
-                            backgrounds = backgroundCatalog,
-                            selectedBackgroundId = selectedBackgroundId,
-                            selectedBackgroundUrl = selectedBackgroundUrl,
-                            customBackgroundUrl = currentProfile?.profileBackgroundUrl,
-                            standardBackgroundColor = previewAccent,
-                            imageOverlayAlpha = profileBackgroundOverlayAlpha(backgroundBrightness),
-                            onSelectionChange = { id, url ->
-                                selectedBackgroundId = id
-                                selectedBackgroundUrl = url
-                            },
-                        )
+        item {
+            NuvioSurfaceCard {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = stringResource(Res.string.profile_choose_background),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(Res.string.profile_banner_edit_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ProfileBackgroundPicker(
+                        backgrounds = backgroundCatalog,
+                        selectedBackgroundId = selectedBackgroundId,
+                        selectedBackgroundUrl = selectedBackgroundUrl,
+                        customBackgroundUrl = selectedBackgroundUrl ?: currentProfile?.profileBackgroundUrl,
+                        standardBackgroundColor = previewAccent,
+                        imageOverlayAlpha = profileBackgroundOverlayAlpha(backgroundBrightness),
+                        onSelectionChange = { id, url ->
+                            selectedBackgroundId = id
+                            selectedBackgroundUrl = url
+                        },
+                    )
+                    OutlinedButton(onClick = { showBannerBrowser = true }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(Res.string.profile_banner_browse))
+                    }
+                    if (!isNew) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -386,9 +389,11 @@ fun ProfileEditScreen(
                             ProfileRepository.createProfile(
                                 name = name,
                                 avatarColorHex = avatarColorHex,
-                avatarId = if (customAvatarUrl == null) selectedAvatarId else null,
-                avatarUrl = customAvatarUrl,
+                                avatarId = if (customAvatarUrl == null) selectedAvatarId else null,
+                                avatarUrl = customAvatarUrl,
                                 usesPrimaryAddons = usesPrimaryAddons,
+                                profileBackgroundId = selectedBackgroundId,
+                                profileBackgroundUrl = selectedBackgroundUrl,
                             )
                         } else {
                             val profileIndex = requireNotNull(currentProfile).profileIndex
@@ -436,6 +441,19 @@ fun ProfileEditScreen(
                 }
             }
         }
+    }
+
+    if (showBannerBrowser) {
+        ProfileBannerBrowser(
+            selectedUrl = selectedBackgroundUrl,
+            overlayAlpha = profileBackgroundOverlayAlpha(backgroundBrightness),
+            onPick = { url ->
+                selectedBackgroundId = null
+                selectedBackgroundUrl = url
+                showBannerBrowser = false
+            },
+            onDismiss = { showBannerBrowser = false },
+        )
     }
 
     NuvioStatusModal(

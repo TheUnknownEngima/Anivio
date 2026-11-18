@@ -42,6 +42,7 @@ import com.nuvio.app.features.membership.ProfileBackgroundCatalogItem
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.profile_background_custom
 import nuvio.composeapp.generated.resources.profile_background_normal
+import nuvio.composeapp.generated.resources.profile_banner_selected
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -81,10 +82,13 @@ internal fun ProfileBackgroundPicker(
             }
         }
         val customImageUrl = customBackgroundUrl?.trim()?.takeIf { it.isNotBlank() }
-        if (customImageUrl != null) {
+        if (customImageUrl != null && backgrounds.none { it.landscapeImageUrl == customImageUrl }) {
             item(key = "custom") {
                 ProfileBackgroundItem(
-                    label = stringResource(Res.string.profile_background_custom),
+                    label = stringResource(
+                        if (selectedBackgroundUrl == customImageUrl) Res.string.profile_banner_selected
+                        else Res.string.profile_background_custom,
+                    ),
                     isSelected = selectedBackgroundId == null && selectedBackgroundUrl == customImageUrl,
                     onClick = { onSelectionChange(null, customImageUrl) },
                     imageOverlayAlpha = imageOverlayAlpha,
@@ -108,8 +112,15 @@ internal fun ProfileBackgroundPicker(
         items(backgrounds, key = ProfileBackgroundCatalogItem::id) { background ->
             ProfileBackgroundItem(
                 label = background.displayName,
-                isSelected = selectedBackgroundUrl == null && selectedBackgroundId == background.id,
-                onClick = { onSelectionChange(background.id, null) },
+                isSelected = if (selectedBackgroundUrl != null) {
+                    selectedBackgroundUrl == background.landscapeImageUrl
+                } else {
+                    selectedBackgroundId == background.id
+                },
+                onClick = {
+                    if (background.landscapeImageUrl != null) onSelectionChange(null, background.landscapeImageUrl)
+                    else onSelectionChange(background.id, null)
+                },
                 imageOverlayAlpha = imageOverlayAlpha,
             ) {
                 AsyncImage(
