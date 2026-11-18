@@ -1,0 +1,954 @@
+[
+  {
+    "feature": "theme_settings",
+    "key": "amoled_enabled",
+    "type": "boolean",
+    "group": "Appearance",
+    "title": "Amoled enabled"
+  },
+  {
+    "feature": "theme_settings",
+    "key": "custom_theme_colors",
+    "type": "string",
+    "group": "Appearance",
+    "title": "Custom theme colors"
+  },
+  {
+    "feature": "theme_settings",
+    "key": "liquid_glass_native_tab_bar_enabled",
+    "type": "boolean",
+    "group": "Appearance",
+    "title": "Liquid glass native tab bar enabled"
+  },
+  {
+    "feature": "theme_settings",
+    "key": "nav_bar_glow_enabled",
+    "type": "boolean",
+    "group": "Appearance",
+    "title": "Nav bar glow enabled"
+  },
+  {
+    "feature": "theme_settings",
+    "key": "nav_bar_style",
+    "type": "string",
+    "group": "Appearance",
+    "title": "Nav bar style"
+  },
+  {
+    "feature": "theme_settings",
+    "key": "selected_theme",
+    "type": "string",
+    "group": "Appearance",
+    "title": "Selected theme"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_enabled",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist enabled"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_show_on_hero",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist show on hero"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_audience",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use audience"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_imdb",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use imdb"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_letterboxd",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use letterboxd"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_mal",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use mal"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_metacritic",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use metacritic"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_tmdb",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use tmdb"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_tomatoes",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use tomatoes"
+  },
+  {
+    "feature": "mdblist_settings",
+    "key": "mdblist_use_trakt",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Mdblist use trakt"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_enabled",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb enabled"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_language",
+    "type": "string",
+    "group": "Discovery",
+    "title": "Tmdb language"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_artwork",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use artwork"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_basic_info",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use basic info"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_collections",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use collections"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_credits",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use credits"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_details",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use details"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_episodes",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use episodes"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_more_like_this",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use more like this"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_networks",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use networks"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_productions",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use productions"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_release_dates",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use release dates"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_season_posters",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use season posters"
+  },
+  {
+    "feature": "tmdb_settings",
+    "key": "tmdb_use_trailers",
+    "type": "boolean",
+    "group": "Discovery",
+    "title": "Tmdb use trailers"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_cloud_library_enabled",
+    "type": "boolean",
+    "group": "Integrations",
+    "title": "Debrid cloud library enabled"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_enabled",
+    "type": "boolean",
+    "group": "Integrations",
+    "title": "Debrid enabled"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_instant_playback_preparation_limit",
+    "type": "int",
+    "group": "Integrations",
+    "title": "Debrid instant playback preparation limit"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_preferred_resolver_provider_id",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid preferred resolver provider id"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_codec_filter",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream codec filter"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_description_template",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream description template"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_dolby_vision_filter",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream dolby vision filter"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_hdr_filter",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream hdr filter"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_max_results",
+    "type": "int",
+    "group": "Integrations",
+    "title": "Debrid stream max results"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_minimum_quality",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream minimum quality"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_name_template",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream name template"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_preferences",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream preferences"
+  },
+  {
+    "feature": "debrid_settings",
+    "key": "debrid_stream_sort_mode",
+    "type": "string",
+    "group": "Integrations",
+    "title": "Debrid stream sort mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "android_libmpv_hardware_decoding_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Android libmpv hardware decoding enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "android_libmpv_video_output",
+    "type": "string",
+    "group": "Playback",
+    "title": "Android libmpv video output"
+  },
+  {
+    "feature": "player_settings",
+    "key": "android_libmpv_yuv420p_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Android libmpv yuv420p enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "android_playback_engine",
+    "type": "string",
+    "group": "Playback",
+    "title": "Android playback engine"
+  },
+  {
+    "feature": "player_settings",
+    "key": "animeskip_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Animeskip enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "audio_amplification_db",
+    "type": "float",
+    "group": "Playback",
+    "title": "Audio amplification db"
+  },
+  {
+    "feature": "player_settings",
+    "key": "audio_center_mix_level",
+    "type": "float",
+    "group": "Playback",
+    "title": "Audio center mix level"
+  },
+  {
+    "feature": "player_settings",
+    "key": "audio_channels",
+    "type": "string",
+    "group": "Playback",
+    "title": "Audio channels"
+  },
+  {
+    "feature": "player_settings",
+    "key": "audio_delay_ms",
+    "type": "int",
+    "group": "Playback",
+    "title": "Audio delay ms"
+  },
+  {
+    "feature": "player_settings",
+    "key": "audio_downmix",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Audio downmix"
+  },
+  {
+    "feature": "player_settings",
+    "key": "audio_maintain_volume",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Audio maintain volume"
+  },
+  {
+    "feature": "player_settings",
+    "key": "auto_switch_playback_engine_on_error",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Auto switch playback engine on error"
+  },
+  {
+    "feature": "player_settings",
+    "key": "decoder_priority",
+    "type": "int",
+    "group": "Playback",
+    "title": "Decoder priority"
+  },
+  {
+    "feature": "player_settings",
+    "key": "default_server_key",
+    "type": "string",
+    "group": "Playback",
+    "title": "Default server key"
+  },
+  {
+    "feature": "player_settings",
+    "key": "enhancement_resolution",
+    "type": "string",
+    "group": "Playback",
+    "title": "Enhancement resolution"
+  },
+  {
+    "feature": "player_settings",
+    "key": "exo_chapters_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Exo chapters enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "external_player_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "External player enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "external_player_forward_subtitles",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "External player forward subtitles"
+  },
+  {
+    "feature": "player_settings",
+    "key": "external_player_id",
+    "type": "string",
+    "group": "Playback",
+    "title": "External player id"
+  },
+  {
+    "feature": "player_settings",
+    "key": "external_player_send_skip_segments",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "External player send skip segments"
+  },
+  {
+    "feature": "player_settings",
+    "key": "hold_to_speed_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Hold to speed enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "hold_to_speed_value",
+    "type": "float",
+    "group": "Playback",
+    "title": "Hold to speed value"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_audio_output_mode",
+    "type": "string",
+    "group": "Playback",
+    "title": "Ios audio output mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_brightness",
+    "type": "int",
+    "group": "Playback",
+    "title": "Ios brightness"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_contrast",
+    "type": "int",
+    "group": "Playback",
+    "title": "Ios contrast"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_deband_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Ios deband enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_extended_dynamic_range_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Ios extended dynamic range enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_gamma",
+    "type": "int",
+    "group": "Playback",
+    "title": "Ios gamma"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_hardware_decoder_mode",
+    "type": "string",
+    "group": "Playback",
+    "title": "Ios hardware decoder mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_hdr_compute_peak_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Ios hdr compute peak enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_interpolation_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Ios interpolation enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_saturation",
+    "type": "int",
+    "group": "Playback",
+    "title": "Ios saturation"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_target_colorspace_hint_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Ios target colorspace hint enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_target_primaries",
+    "type": "string",
+    "group": "Playback",
+    "title": "Ios target primaries"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_target_transfer",
+    "type": "string",
+    "group": "Playback",
+    "title": "Ios target transfer"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_tone_mapping_mode",
+    "type": "string",
+    "group": "Playback",
+    "title": "Ios tone mapping mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "ios_video_output_preset",
+    "type": "string",
+    "group": "Playback",
+    "title": "Ios video output preset"
+  },
+  {
+    "feature": "player_settings",
+    "key": "libass_render_type",
+    "type": "string",
+    "group": "Playback",
+    "title": "Libass render type"
+  },
+  {
+    "feature": "player_settings",
+    "key": "map_dv7_to_hevc",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Map dv7 to hevc"
+  },
+  {
+    "feature": "player_settings",
+    "key": "next_episode_threshold_minutes_before_end_v2",
+    "type": "float",
+    "group": "Playback",
+    "title": "Next episode threshold minutes before end v2"
+  },
+  {
+    "feature": "player_settings",
+    "key": "next_episode_threshold_mode",
+    "type": "string",
+    "group": "Playback",
+    "title": "Next episode threshold mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "next_episode_threshold_percent_v2",
+    "type": "float",
+    "group": "Playback",
+    "title": "Next episode threshold percent v2"
+  },
+  {
+    "feature": "player_settings",
+    "key": "persist_audio_amplification",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Persist audio amplification"
+  },
+  {
+    "feature": "player_settings",
+    "key": "prefer_same_server",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Prefer same server"
+  },
+  {
+    "feature": "player_settings",
+    "key": "preferred_audio_language",
+    "type": "string",
+    "group": "Playback",
+    "title": "Preferred audio language"
+  },
+  {
+    "feature": "player_settings",
+    "key": "preferred_subtitle_language",
+    "type": "string",
+    "group": "Playback",
+    "title": "Preferred subtitle language"
+  },
+  {
+    "feature": "player_settings",
+    "key": "preload_next_episode",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Preload next episode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "remember_audio_delay",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Remember audio delay"
+  },
+  {
+    "feature": "player_settings",
+    "key": "resize_mode",
+    "type": "string",
+    "group": "Playback",
+    "title": "Resize mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "secondary_preferred_audio_language",
+    "type": "string",
+    "group": "Playback",
+    "title": "Secondary preferred audio language"
+  },
+  {
+    "feature": "player_settings",
+    "key": "secondary_preferred_subtitle_language",
+    "type": "string",
+    "group": "Playback",
+    "title": "Secondary preferred subtitle language"
+  },
+  {
+    "feature": "player_settings",
+    "key": "show_detailed_loading_status",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Show detailed loading status"
+  },
+  {
+    "feature": "player_settings",
+    "key": "show_loading_overlay",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Show loading overlay"
+  },
+  {
+    "feature": "player_settings",
+    "key": "show_parental_guide",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Show parental guide"
+  },
+  {
+    "feature": "player_settings",
+    "key": "show_pause_overlay",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Show pause overlay"
+  },
+  {
+    "feature": "player_settings",
+    "key": "skip_intro_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Skip intro enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_mode",
+    "type": "string",
+    "group": "Playback",
+    "title": "Stream auto play mode"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_next_episode_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Stream auto play next episode enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_next_episode_fallback_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Stream auto play next episode fallback enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_prefer_binge_group",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Stream auto play prefer binge group"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_regex",
+    "type": "string",
+    "group": "Playback",
+    "title": "Stream auto play regex"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_reuse_binge_group",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Stream auto play reuse binge group"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_selected_addons",
+    "type": "stringset",
+    "group": "Playback",
+    "title": "Stream auto play selected addons"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_selected_plugins",
+    "type": "stringset",
+    "group": "Playback",
+    "title": "Stream auto play selected plugins"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_source",
+    "type": "string",
+    "group": "Playback",
+    "title": "Stream auto play source"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_auto_play_timeout_seconds",
+    "type": "int",
+    "group": "Playback",
+    "title": "Stream auto play timeout seconds"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_reuse_last_link_cache_hours",
+    "type": "int",
+    "group": "Playback",
+    "title": "Stream reuse last link cache hours"
+  },
+  {
+    "feature": "player_settings",
+    "key": "stream_reuse_last_link_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Stream reuse last link enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_background_color",
+    "type": "string",
+    "group": "Playback",
+    "title": "Subtitle background color"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_bold",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Subtitle bold"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_bottom_offset",
+    "type": "int",
+    "group": "Playback",
+    "title": "Subtitle bottom offset"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_font_family",
+    "type": "string",
+    "group": "Playback",
+    "title": "Subtitle font family"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_font_size_sp",
+    "type": "int",
+    "group": "Playback",
+    "title": "Subtitle font size sp"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_outline_color",
+    "type": "string",
+    "group": "Playback",
+    "title": "Subtitle outline color"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_outline_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Subtitle outline enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_outline_width",
+    "type": "int",
+    "group": "Playback",
+    "title": "Subtitle outline width"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_override_embedded_styles",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Subtitle override embedded styles"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_show_only_preferred_languages",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Subtitle show only preferred languages"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_strip_sdh",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Subtitle strip sdh"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_text_color",
+    "type": "string",
+    "group": "Playback",
+    "title": "Subtitle text color"
+  },
+  {
+    "feature": "player_settings",
+    "key": "subtitle_use_forced_subtitles",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Subtitle use forced subtitles"
+  },
+  {
+    "feature": "player_settings",
+    "key": "touch_gestures_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Touch gestures enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "tunneling_enabled",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Tunneling enabled"
+  },
+  {
+    "feature": "player_settings",
+    "key": "use_libass",
+    "type": "boolean",
+    "group": "Playback",
+    "title": "Use libass"
+  },
+  {
+    "feature": "player_settings",
+    "key": "video_enhancement",
+    "type": "string",
+    "group": "Playback",
+    "title": "Video enhancement"
+  },
+  {
+    "feature": "stream_badge_settings",
+    "key": "show_file_size_badges",
+    "type": "boolean",
+    "group": "Streams",
+    "title": "Show file size badges"
+  },
+  {
+    "feature": "stream_badge_settings",
+    "key": "stream_badge_placement",
+    "type": "string",
+    "group": "Streams",
+    "title": "Stream badge placement"
+  },
+  {
+    "feature": "stream_badge_settings",
+    "key": "stream_badge_rules",
+    "type": "string",
+    "group": "Streams",
+    "title": "Stream badge rules"
+  },
+  {
+    "feature": "tracking_settings",
+    "key": "tracking_anivio_assets_enabled",
+    "type": "boolean",
+    "group": "Tracking",
+    "title": "Tracking anivio assets enabled"
+  },
+  {
+    "feature": "tracking_settings",
+    "key": "tracking_anivio_metadata_fallback_enabled",
+    "type": "boolean",
+    "group": "Tracking",
+    "title": "Tracking anivio metadata fallback enabled"
+  },
+  {
+    "feature": "tracking_settings",
+    "key": "tracking_continue_watching_days_cap",
+    "type": "int",
+    "group": "Tracking",
+    "title": "Tracking continue watching days cap"
+  },
+  {
+    "feature": "tracking_settings",
+    "key": "tracking_library_source_mode",
+    "type": "string",
+    "group": "Tracking",
+    "title": "Tracking library source mode"
+  },
+  {
+    "feature": "tracking_settings",
+    "key": "tracking_watch_progress_source",
+    "type": "string",
+    "group": "Tracking",
+    "title": "Tracking watch progress source"
+  }
+]
