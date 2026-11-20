@@ -28,8 +28,8 @@
 
 ## Development branches
 
-- [`cmp-rewrite`](https://github.com/mdtahseen7/Anivio/tree/cmp-rewrite) is the default branch for Android and the website.
-- [`codex/windows-preview`](https://github.com/mdtahseen7/Anivio/tree/codex/windows-preview) is the Windows source branch.
+- [`main`](https://github.com/mdtahseen7/Anivio/tree/main) is the default branch for Android and the website.
+- [`windows`](https://github.com/mdtahseen7/Anivio/tree/windows) is the Windows source branch.
 
 The [Anivio release workflow](https://github.com/mdtahseen7/Anivio/actions/workflows/build-apk.yml) can build from both branches and publish their packages under one release.
 

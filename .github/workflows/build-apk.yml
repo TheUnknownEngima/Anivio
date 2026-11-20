@@ -6,7 +6,7 @@ on:
       ref:
         description: 'Branch, tag, or full commit SHA to build'
         required: true
-        default: 'cmp-rewrite'
+        default: 'main'
       bump:
         description: 'Version increment (beta builds continue the current beta version)'
         type: choice
@@ -98,7 +98,7 @@ jobs:
             --prerelease "${IS_PRERELEASE}" --repository "${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
           cat build/release/notes.md >> "$GITHUB_STEP_SUMMARY"
           if [[ "$INCLUDE_WINDOWS" == true ]]; then
-            windows_commit="$(git rev-parse refs/remotes/origin/codex/windows-preview^{commit})"
+            windows_commit="$(git rev-parse refs/remotes/origin/windows^{commit})"
             echo "windows_commit=$windows_commit" >> "$GITHUB_OUTPUT"
           fi
 

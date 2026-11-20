@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['website/**', 'supabase/**', 'scripts/*release*', 'scripts/generate-web-settings.py', '.github/workflows/build-apk.yml', '.github/workflows/android-release.yml', '.github/workflows/web-and-release-checks.yml', 'composeApp/src/androidMain/**/PlayerSettingsStorage.android.kt']
   push:
-    branches: [cmp-rewrite]
+    branches: [main]
     paths: ['website/**', 'supabase/**', 'scripts/*release*', 'scripts/generate-web-settings.py', '.github/workflows/build-apk.yml', '.github/workflows/android-release.yml', '.github/workflows/web-and-release-checks.yml']
 permissions:
   contents: read
