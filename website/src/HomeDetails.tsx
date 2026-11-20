@@ -22,6 +22,8 @@ import {
   Users,
 } from "lucide-react";
 
+import { PersonalSpacePreview } from "./DesktopShowcase";
+
 const tours = {
   Playback: {
     icon: MonitorPlay,
@@ -226,17 +228,8 @@ export default function HomeDetails() {
         aria-labelledby="personal-title"
       >
         <div className="personal-copy">
-          <div className="eyebrow">Never one size fits all</div>
-          <h2 id="personal-title">
-            Your little corner
-            <br />
-            <span>of the internet.</span>
-          </h2>
-          <p>
-            A favourite character on your profile. A banner from an anime you
-            love. A colour that feels right. Make Anivio feel familiar before
-            you even press play.
-          </p>
+          <h2 id="personal-title">Your personal space</h2>
+          <p>Choose a banner from an anime you love, add an avatar, and make each profile feel like yours.</p>
           <div className="personal-points">
             <span>
               <Palette size={19} /> Themes & custom colours
@@ -252,35 +245,7 @@ export default function HomeDetails() {
             Find your next banner <ArrowUpRight size={17} />
           </a>
         </div>
-        <div
-          className="personal-preview"
-          aria-label="Profile customisation illustration"
-        >
-          <div className="personal-landscape">
-            <div className="moon-shape" />
-            <div className="landscape-wave" />
-          </div>
-          <div className="personal-avatar">
-            <BookOpen size={29} />
-          </div>
-          <div className="personal-preview-copy">
-            <b>Your name. Your world.</b>
-            <span>A space for every side of you.</span>
-          </div>
-          <div
-            className="theme-swatches"
-            aria-label="Available colour examples"
-          >
-            {["#b7cca2", "#bcadda", "#a1bccd", "#d7b6a6", "#b75783"].map(
-              (color) => (
-                <i key={color} style={{ background: color }} />
-              ),
-            )}
-          </div>
-          <a className="personal-link" href="/account?tab=profiles">
-            Make it personal <ArrowUpRight size={16} />
-          </a>
-        </div>
+        <PersonalSpacePreview />
       </section>
       <section
         className="shell section home-connections"
@@ -381,7 +346,7 @@ export default function HomeDetails() {
             </h2>
           </div>
           <p>
-            Start on Android. Manage your account from the browser. Keep the
+            Start on Android or Windows. Manage your account from the browser. Keep the
             same profile wherever you pick things up.
           </p>
         </div>
@@ -390,7 +355,7 @@ export default function HomeDetails() {
             [
               Download,
               "Get the app",
-              "Download the latest Android release from GitHub and install Anivio.",
+              "Pick the Android or Windows installer and set up Anivio.",
               "Get Anivio",
               "#download",
             ],

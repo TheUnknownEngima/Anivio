@@ -38,7 +38,6 @@ import {
   Search,
   Settings2,
   Shield,
-  Smartphone,
   Sparkles,
   Sun,
   Trash2,
@@ -82,6 +81,7 @@ import { supporterGradient } from "./supporter-style";
 import { useProfileSelection, unlockProfile } from "./profile-selection";
 import { enrichMedia, presentMedia } from "./media-metadata.mjs";
 import HomeDetails from "./HomeDetails";
+import { DesktopDownload, DesktopFeaturePreviews, windowsInstaller } from "./DesktopShowcase";
 import CommunityCollections, { CollectionReview } from "./CommunityCollections";
 import "./style.css";
 
@@ -525,55 +525,7 @@ function Home() {
           </p>
         </div>
         <div className="feature-grid">
-          <article className="feature-card feature-large">
-            <div className="feature-art progress-art">
-              <div className="episode">
-                <span className="episode-orb">
-                  <Play fill="currentColor" />
-                </span>
-                <div>
-                  <small>CONTINUE WATCHING</small>
-                  <h3>Your next episode awaits.</h3>
-                  <div className="progress-bar">
-                    <i />
-                  </div>
-                  <span>Saved across your devices</span>
-                </div>
-              </div>
-              <div className="sync-badge">
-                <Cloud size={15} /> In sync
-              </div>
-            </div>
-            <div className="feature-text">
-              <h3>Pause here. Pick up anywhere.</h3>
-              <p>
-                Your library and episode progress stay with your profile.
-                Connect AniList and keep your anime list up to date, too.
-              </p>
-            </div>
-          </article>
-          <article className="feature-card">
-            <div className="feature-art avatars-art">
-              {["#b1c7a2", "#ceb8df", "#dfbea3"].map((c, i) => (
-                <span
-                  key={c}
-                  style={{
-                    background: c,
-                    transform: `rotate(${i === 0 ? -8 : i === 2 ? 8 : 0}deg)`,
-                  }}
-                >
-                  <Users size={37} />
-                </span>
-              ))}
-            </div>
-            <div className="feature-text">
-              <h3>One app. Everyone’s own space.</h3>
-              <p>
-                Up to six profiles. Separate favourites, progress, personal
-                banners, and a look that feels like you.
-              </p>
-            </div>
-          </article>
+          <DesktopFeaturePreviews />
           <article className="feature-card">
             <div className="feature-art player-art">
               <div className="play-puck">
@@ -651,33 +603,7 @@ function Home() {
           </div>
         </div>
       </section>
-      <section id="download" className="shell section download-section">
-        <div className="eyebrow">Let’s get to the good part</div>
-        <h2>
-          Your next favourite
-          <br />
-          is waiting.
-        </h2>
-        <p>Get the Android app. Bring your sources. Make it yours.</p>
-        <a
-          className="button primary"
-          href={`${repo}/releases/latest`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <Smartphone size={19} /> Download for Android{" "}
-          <ArrowUpRight size={17} />
-        </a>
-        <div className="download-details">
-          <Link href="/news">All releases & changelogs</Link>
-          <span>·</span>
-          <a href={repo}>Build for iOS from source</a>
-        </div>
-        <p className="fine-print">
-          Anivio plays media from the sources you connect. It does not host or
-          provide media.
-        </p>
-      </section>
+      <DesktopDownload />
       <section className="open-source shell">
         <div>
           <Code2 size={30} />
@@ -936,6 +862,9 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
   const [profiles, setProfiles] = useState<Profile[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [choosingProfile, setChoosingProfile] = useState(false);
+  const [profileChoiceBusy, setProfileChoiceBusy] = useState(false);
+  const [profileChoiceError, setProfileChoiceError] = useState("");
   const active = profiles.find((p) => p.profile_index === profileId);
   const [isAdmin, setAdmin] = useState(false);
   async function refresh() {
@@ -971,38 +900,36 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
       }).catch(() => {});
   }, [session.user.id]);
   const choose = async (id: number) => {
-    if (id === profileId) return;
+    if (id === profileId) {
+      setChoosingProfile(false);
+      return;
+    }
     const target = profiles.find((p) => p.profile_index === id);
+    setProfileChoiceBusy(true);
+    setProfileChoiceError("");
     try {
-      if (await unlockProfile(target)) selectProfile(id);
+      if (await unlockProfile(target)) {
+        selectProfile(id);
+        setChoosingProfile(false);
+      }
     } catch (e) {
-      setError(errorMessage(e));
+      setProfileChoiceError(errorMessage(e));
+    } finally {
+      setProfileChoiceBusy(false);
     }
   };
+  const profileBackdrop = safeUrl(active?.profile_background_url);
   return (
     <div className="dashboard shell">
       <aside className="dashboard-sidebar">
         <div className="account-label">Your space</div>
-        <label className="profile-select">
+        <button type="button" className="profile-select profile-switch-button"
+          aria-label="Switch profile" aria-haspopup="dialog" disabled={!profiles.length}
+          onClick={() => { setProfileChoiceError(""); setChoosingProfile(true); }}>
           <ProfileAvatar profile={active} />
-          <select
-            aria-label="Active profile"
-            value={profileId}
-            onChange={(e) => choose(Number(e.target.value))}
-          >
-            {profiles.length ? (
-              profiles.map((p) => (
-                <option value={p.profile_index} key={p.profile_index}>
-                  {p.name}
-                  {p.pin_enabled ? " · PIN" : ""}
-                </option>
-              ))
-            ) : (
-              <option value={1}>Your profile</option>
-            )}
-          </select>
+          <span>{active?.name || "Your profile"}</span>
           <ChevronDown size={15} />
-        </label>
+        </button>
         <nav aria-label="Account sections">
           {tabs
             .filter(([key]) => key !== "admin" || isAdmin)
@@ -1039,7 +966,7 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
             </div>
             <h1>
               {tab === "overview"
-                ? "Make yourself at home."
+                ? "Your personal space"
                 : tabs.find(([key]) => key === tab)?.[1]}
             </h1>
             <p>
@@ -1063,7 +990,7 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
         ) : (
           <div key={`${session.user.id}:${profileId}:${tab}`}>
             {tab === "overview" ? (
-              <Overview profiles={profiles} session={session} active={active} />
+              <Overview profiles={profiles} session={session} active={active} profileId={profileId} />
             ) : tab === "profiles" ? (
               <Profiles profiles={profiles} refresh={refresh} />
             ) : tab === "addons" || tab === "plugins" ? (
@@ -1096,6 +1023,27 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
           </div>
         )}
       </div>
+      {choosingProfile && (
+        <Modal title="Who’s watching?" className="profile-switch-modal"
+          onClose={() => setChoosingProfile(false)}>
+          {profileBackdrop && <img className="profile-switch-backdrop" src={profileBackdrop} alt="" />}
+          <div className="profile-switch-grid">
+            {profiles.map((p) => (
+              <button key={p.profile_index} type="button"
+                className="profile-switch-option" aria-current={p.profile_index === profileId}
+                disabled={profileChoiceBusy} onClick={() => choose(p.profile_index)}>
+                <ProfileAvatar profile={p} large />
+                <strong>{p.name}</strong>
+                {p.pin_enabled && <small>PIN protected</small>}
+              </button>
+            ))}
+          </div>
+          <Message error>{profileChoiceError}</Message>
+          <Link className="button ghost" href="/account?tab=profiles" onClick={() => setChoosingProfile(false)}>
+            Manage profiles
+          </Link>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1111,10 +1059,12 @@ function Overview({
   profiles,
   session,
   active,
+  profileId,
 }: {
   profiles: Profile[];
   session: Session;
   active?: Profile;
+  profileId: number;
 }) {
   return (
     <>
@@ -1136,8 +1086,8 @@ function Overview({
             {active?.name || "to Anivio"}.
           </h2>
           <p>{session.user.email}</p>
-          <Link href="/account?tab=mobile_settings" className="button primary">
-            Make it yours <ArrowUpRight size={17} />
+          <Link href="/account?tab=profiles" className="button primary">
+            Customize profile
           </Link>
         </div>
         <div className="welcome-profile">
@@ -1151,17 +1101,13 @@ function Overview({
           </small>
         </div>
       </div>
+      <ContinueWatchingOverview profileId={profileId} />
       <div className="quick-grid">
         {[
           [
             "profiles",
             "Your profiles",
             `${profiles.length} of 6 spaces, each with its own story.`,
-          ],
-          [
-            "watch_progress",
-            "Pick up your progress",
-            "Manage your saved place in every episode.",
           ],
           ["addons", "Your sources", "Keep the sources you love close by."],
           ["devices", "Connected devices", "See where you’re signed in."],
@@ -1185,6 +1131,61 @@ function Overview({
         </p>
       </div>
     </>
+  );
+}
+
+function ContinueWatchingOverview({ profileId }: { profileId: number }) {
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    readMedia("watch_progress", profileId, 32).then((progress) => {
+      const seen = new Set();
+      const recent = progress.filter((row) => {
+        if (seen.has(row.content_id) || Number(row.position) <= 0) return false;
+        seen.add(row.content_id);
+        const duration = Number(row.duration);
+        return !duration || Number(row.position) < duration * 0.95;
+      }).slice(0, 4);
+      if (active) setRows(recent.map((row) => presentMedia(row)));
+      return enrichMedia(recent);
+    }).then((enriched) => {
+      if (active) setRows(enriched);
+    }).catch((e) => {
+      if (active) setError(errorMessage(e));
+    });
+    return () => { active = false; };
+  }, [profileId]);
+  return (
+    <section className="overview-watch" aria-labelledby="overview-watch-title">
+      <div className="surface-heading">
+        <h2 id="overview-watch-title">Continue Watching</h2>
+        <Link className="text-link" href="/account?tab=watch_progress">Manage progress</Link>
+      </div>
+      {error ? <Message error>{error}</Message> : rows === null ? <Loading /> : rows.length === 0 ? (
+        <p className="overview-watch-empty">Synced episodes you’re partway through will appear here.</p>
+      ) : (
+        <div className="overview-watch-grid">
+          {rows.map((row) => {
+            const duration = Number(row.duration);
+            const position = Number(row.position);
+            const backdrop = safeUrl(row.displayBackground || row.displayPoster);
+            const episode = row.episode == null ? undefined : row.season == null ? `E${row.episode}` : `S${row.season} E${row.episode}`;
+            return (
+              <article key={String(row.progress_key || row.content_id)} className="overview-watch-card">
+                {backdrop && <img src={backdrop} alt="" loading="lazy" />}
+                {duration > position && <span className="overview-watch-time">{Math.ceil((duration - position) / 60_000)} min left</span>}
+                <div>
+                  {episode && <small>{episode}</small>}
+                  <strong>{String(row.displayTitle)}</strong>
+                  {duration > 0 && <progress aria-label="Episode progress" max={duration} value={position} />}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -1442,10 +1443,12 @@ function Modal({
   title,
   onClose,
   children,
+  className,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   const ref = React.useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -1460,7 +1463,8 @@ function Modal({
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className={className ? `modal ${className}` : "modal"}
+      aria-label={title}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -3513,7 +3517,7 @@ function ReleaseNews() {
               </div>
               <div className="card-actions">
                 {r.assets
-                  .filter((a) => a.name.endsWith(".apk"))
+                  .filter((a) => /\.(apk|exe)$/i.test(a.name))
                   .map((a) => (
                     <a
                       className="button primary"
@@ -3614,9 +3618,8 @@ function PublicPage({ path }: { path: string }) {
               "01",
               "Get the app",
               <>
-                Download the latest Android APK from{" "}
-                <a href={`${repo}/releases/latest`}>GitHub Releases</a>. iOS
-                builds are available from source.
+                Download the <a href={windowsInstaller}>Windows x64 installer</a> or get the{" "}
+                <a href={`${repo}/releases/latest`}>latest Android APK</a>. iOS builds are available from source.
               </>,
             ],
             [

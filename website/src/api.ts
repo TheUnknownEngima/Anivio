@@ -62,7 +62,7 @@ export async function getSettings(id: number) {
     rows[0] ?? { settings_json: { version: 5, features: {} }, updated_at: null }
   );
 }
-export async function readMedia(kind: string, id: number): Promise<Row[]> {
+export async function readMedia(kind: string, id: number, limit = Infinity): Promise<Row[]> {
   if (!supabase) throw new Error("Account service is not configured.");
   const table =
     kind === "library"
@@ -77,17 +77,18 @@ export async function readMedia(kind: string, id: number): Promise<Row[]> {
         ? "id"
         : "content_id";
   const rows: Row[] = [];
-  for (let offset = 0; ; offset += 500) {
+  for (let offset = 0; offset < limit; offset += 500) {
+    const pageSize = Math.min(500, limit - offset);
     const { data, error } = await supabase
       .from(table)
       .select("*")
       .eq("profile_id", id)
       .order(table === "watch_progress" ? "last_watched" : table === "watched_items" ? "watched_at" : "added_at", { ascending: false })
       .order(order)
-      .range(offset, offset + 499);
+      .range(offset, offset + pageSize - 1);
     if (error) throw error;
     rows.push(...data);
-    if (data.length < 500) break;
+    if (data.length < pageSize) break;
   }
   return rows;
 }
