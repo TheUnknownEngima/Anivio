@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Cloud, Download, Monitor, Smartphone, Users } from "lucide-react";
 
 const repo = "https://github.com/mdtahseen7/Anivio";
+const knownWindowsInstaller = `${repo}/releases/download/v0.1.31%2Bwindows/Anivio-Windows-x64.exe`;
 type Release = {
   draft: boolean;
   prerelease: boolean;
@@ -9,7 +10,7 @@ type Release = {
 };
 
 function useWindowsInstaller() {
-  const [installer, setInstaller] = useState<string>();
+  const [installer, setInstaller] = useState(knownWindowsInstaller);
   useEffect(() => {
     const controller = new AbortController();
     fetch("https://api.github.com/repos/mdtahseen7/Anivio/releases?per_page=30",
@@ -22,7 +23,7 @@ function useWindowsInstaller() {
           .find(({ name, browser_download_url }) =>
             name === "Anivio-Windows-x64.exe" &&
             browser_download_url.startsWith(`${repo}/releases/download/`));
-        if (!controller.signal.aborted) setInstaller(asset?.browser_download_url);
+        if (asset && !controller.signal.aborted) setInstaller(asset.browser_download_url);
       })
       .catch(() => {});
     return () => controller.abort();
@@ -78,10 +79,9 @@ export function DesktopDownload() {
           alt="Anivio on Windows, showing the One Piece hero and Continue Watching." />
       </div>
       <div className="download-platform-actions">
-        <a className="download-platform" href={windowsInstaller || `${repo}/releases`}>
+        <a className="download-platform" href={windowsInstaller}>
           <span className="download-platform-icon"><Monitor size={22} /></span>
-          <span><strong>{windowsInstaller ? "Download for Windows" : "Windows releases"}</strong>
-            <small>{windowsInstaller ? "x64 installer · .exe" : "Check GitHub for the x64 installer"}</small></span>
+          <span><strong>Download for Windows</strong><small>x64 installer · .exe</small></span>
           <Download size={18} aria-hidden="true" />
         </a>
         <a className="download-platform" href={`${repo}/releases/latest`}>
