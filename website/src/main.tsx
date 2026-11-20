@@ -81,7 +81,7 @@ import { supporterGradient } from "./supporter-style";
 import { useProfileSelection, unlockProfile } from "./profile-selection";
 import { enrichMedia, presentMedia } from "./media-metadata.mjs";
 import HomeDetails from "./HomeDetails";
-import { DesktopDownload, DesktopFeaturePreviews, windowsInstaller } from "./DesktopShowcase";
+import { DesktopDownload, DesktopFeaturePreviews } from "./DesktopShowcase";
 import CommunityCollections, { CollectionReview } from "./CommunityCollections";
 import "./style.css";
 
@@ -379,6 +379,7 @@ function App() {
           <Link
             href={session ? "/account" : "/account/login"}
             className="nav-account"
+            aria-label={session ? `${headerProfile?.name || "My account"} dashboard` : "Log in"}
           >
             {session && <ProfileAvatar profile={headerProfile} />}
             <span className="nav-profile-name">{session ? headerProfile?.name || "My account" : "Log in"}</span>
@@ -930,6 +931,14 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
           <span>{active?.name || "Your profile"}</span>
           <ChevronDown size={15} />
         </button>
+        <label className="account-section-select">
+          <span>Account section</span>
+          <select value={tab} onChange={(e) => navigate(`/account?tab=${e.target.value}`)}>
+            {tabs.filter(([key]) => key !== "admin" || isAdmin).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </label>
         <nav aria-label="Account sections">
           {tabs
             .filter(([key]) => key !== "admin" || isAdmin)
@@ -3618,7 +3627,7 @@ function PublicPage({ path }: { path: string }) {
               "01",
               "Get the app",
               <>
-                Download the <a href={windowsInstaller}>Windows x64 installer</a> or get the{" "}
+                Find the <a href="/#download">Windows x64 installer</a> or get the{" "}
                 <a href={`${repo}/releases/latest`}>latest Android APK</a>. iOS builds are available from source.
               </>,
             ],

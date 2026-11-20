@@ -1767,11 +1767,12 @@ input[type="checkbox"][role="switch"]:checked:before {
     gap: 10px;
   }
   .topbar .brand {
-    width: 107px;
+    width: clamp(84px, 27vw, 107px);
   }
   .nav-actions {
     margin-left: auto;
-    gap: 6px;
+    min-width: 0;
+    gap: 4px;
   }
   .topbar nav {
     display: none;
@@ -1800,13 +1801,15 @@ input[type="checkbox"][role="switch"]:checked:before {
   .nav-account {
     font-size: 11px;
     padding: 10px 8px;
+    min-width: 0;
+    gap: 7px;
   }
-  .nav-account svg {
-    width: 13px;
-  }
+  .nav-account .nav-profile-name { min-width: 0; }
+  .nav-account > svg { display: none; }
   .topbar .icon-button {
-    width: 34px;
-    height: 36px;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 44px;
   }
   .hero {
     grid-template-columns: 1fr;
@@ -2296,6 +2299,9 @@ body {
 .device-preview p {
   margin: 6px 0 0;
   font-size: 13px;
+}
+@media (max-width: 360px) {
+  .nav-account:has(.avatar) .nav-profile-name { display: none; }
 }
 @media (max-width: 700px) {
   .cover-grid {
@@ -3413,8 +3419,62 @@ body {
   font-size: .8rem;
   font-weight: 650;
 }
+.dashboard-main, .dashboard-sidebar { min-width: 0; }
+.dashboard-main { overflow-wrap: anywhere; }
+.account-section-select { display: none; }
+.setting-row > div { min-width: 0; }
+.setting-row select, .setting-row input:not([type="checkbox"]) { min-width: 0; }
+.code-editor { max-width: 100%; }
+.profile-switch-backdrop { pointer-events: none; }
+.profile-switch-grid, .profile-switch-modal > .button { z-index: 1; position: relative; }
+@media (max-width: 760px) {
+  .dashboard { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .dashboard-sidebar .profile-switch-button { width: 100%; margin: 0; min-height: 48px; }
+  .dashboard-sidebar nav { display: none; }
+  .account-section-select { display: grid; gap: 6px; }
+  .account-section-select > span { color: var(--muted); font-size: .875rem; }
+  .account-section-select select { font-size: 1rem; }
+  .dashboard-main .surface { padding: clamp(14px, 4vw, 22px); }
+  .dashboard-main .surface-heading p, .sync-summary p { font-size: .875rem; }
+  .dashboard-heading { gap: 12px; }
+  .dashboard-heading .icon-button { flex: 0 0 42px; }
+  .pill-tabs { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
+  .pill-tabs button { min-height: 44px; font-size: .875rem; padding: 8px 12px; }
+  .setting-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 15px 0;
+    gap: 9px;
+    align-items: center;
+  }
+  .setting-row:has(> input[role="switch"]) { grid-template-columns: minmax(0, 1fr) auto; }
+  .setting-row b { font-size: .9375rem; }
+  .setting-row small { font-size: .875rem; line-height: 1.45; }
+  .setting-row select, .setting-row input:not([type="checkbox"]) {
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+  .sync-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 12px;
+  }
+  .sync-summary > div { min-width: 0; }
+  .sync-summary .button { grid-column: 2; justify-self: start; margin: 0; min-height: 44px; }
+  .profile-switch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 700px) {
   .hero-stage { overflow-x: clip; overflow-clip-margin: 12px; }
+  .tour-stage { min-width: 0; width: 100%; aspect-ratio: auto; min-height: clamp(265px, 55vw, 340px); }
+  .tour-tabs { width: 100%; border-radius: 20px; }
+  .tour-tabs button { min-width: 0; padding-inline: 5px; min-height: 44px; }
   .showcase-watch, .showcase-switch { height: auto; min-height: 0; }
   .showcase-switch img { display: block; height: auto; }
   .download-platform-actions, .overview-watch-grid { grid-template-columns: 1fr; }

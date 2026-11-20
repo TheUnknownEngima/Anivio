@@ -1,9 +1,34 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Cloud, Download, Monitor, Smartphone, Users } from "lucide-react";
 
 const repo = "https://github.com/mdtahseen7/Anivio";
-// Windows has its own release tag so GitHub's Latest link stays on Android.
-export const windowsInstaller = `${repo}/releases/download/v0.1.30%2Bwindows/Anivio-Windows-x64.exe`;
+type Release = {
+  draft: boolean;
+  prerelease: boolean;
+  assets: { name: string; browser_download_url: string }[];
+};
+
+function useWindowsInstaller() {
+  const [installer, setInstaller] = useState<string>();
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("https://api.github.com/repos/mdtahseen7/Anivio/releases?per_page=30",
+      { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<Release[]> : [])
+      .then((releases) => {
+        const asset = releases
+          .filter((release) => !release.draft && !release.prerelease)
+          .flatMap((release) => release.assets)
+          .find(({ name, browser_download_url }) =>
+            name === "Anivio-Windows-x64.exe" &&
+            browser_download_url.startsWith(`${repo}/releases/download/`));
+        if (!controller.signal.aborted) setInstaller(asset?.browser_download_url);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  return installer;
+}
 
 export function DesktopFeaturePreviews() {
   return (
@@ -41,6 +66,7 @@ export function DesktopFeaturePreviews() {
 }
 
 export function DesktopDownload() {
+  const windowsInstaller = useWindowsInstaller();
   return (
     <section id="download" className="shell section download-platforms" aria-labelledby="download-title">
       <div className="section-heading">
@@ -52,9 +78,10 @@ export function DesktopDownload() {
           alt="Anivio on Windows, showing the One Piece hero and Continue Watching." />
       </div>
       <div className="download-platform-actions">
-        <a className="download-platform" href={windowsInstaller}>
+        <a className="download-platform" href={windowsInstaller || `${repo}/releases`}>
           <span className="download-platform-icon"><Monitor size={22} /></span>
-          <span><strong>Download for Windows</strong><small>x64 installer · .exe</small></span>
+          <span><strong>{windowsInstaller ? "Download for Windows" : "Windows releases"}</strong>
+            <small>{windowsInstaller ? "x64 installer · .exe" : "Check GitHub for the x64 installer"}</small></span>
           <Download size={18} aria-hidden="true" />
         </a>
         <a className="download-platform" href={`${repo}/releases/latest`}>
