@@ -132,7 +132,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = partyPanelInset)
+            .padding(end = partyPanelInset)
             .clipToBounds()
             .onSizeChanged { layoutSize = it }
             .playerSurfaceTapGestures(
