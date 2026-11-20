@@ -213,6 +213,8 @@ nav a:hover {
   border: 0;
 }
 .hero {
+  overflow-x: clip;
+  overflow-clip-margin: 12px;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   align-items: center;
@@ -581,16 +583,91 @@ nav a:hover {
   border-radius: 99px;
   padding: 9px 14px;
 }
-.manga-art {
-  background: linear-gradient(120deg, #65695f20, transparent);
-  gap: 35px;
-  color: var(--accent);
+.playback-feature {
+  display: flex;
+  flex-direction: column;
 }
-.manga-art > span {
-  font-size: 110px;
-  font-weight: 800;
-  letter-spacing: -0.1em;
-  opacity: 0.07;
+.playback-feature .feature-art {
+  flex: 1;
+  min-height: 185px;
+}
+.desktop-screenshots {
+  display: grid;
+  gap: 10px;
+  padding: clamp(10px, 2vw, 18px) clamp(10px, 2vw, 18px) 0;
+}
+.desktop-screenshot-current {
+  position: relative;
+  display: block;
+  aspect-ratio: 1.9;
+  overflow: hidden;
+  border: 1px solid #ffffff25;
+  border-radius: 14px;
+  background: #101217;
+}
+.desktop-screenshot-current > img,
+.desktop-screenshot-choices img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.desktop-screenshot-expand {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #fff3;
+  border-radius: 9px;
+  color: white;
+  background: #101217db;
+}
+.desktop-screenshot-current:hover .desktop-screenshot-expand {
+  background: #293143;
+}
+.desktop-screenshot-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.desktop-screenshot-choices button {
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 5px 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--bg);
+  text-align: left;
+  font-size: .8125rem;
+  line-height: 1.3;
+}
+.desktop-screenshot-choices button:hover,
+.desktop-screenshot-choices button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--raised);
+}
+.desktop-screenshot-choices img {
+  aspect-ratio: 2 / 1;
+  height: auto;
+  border-radius: 5px;
+  object-fit: cover;
+}
+.desktop-screenshot-choices span {
+  padding-inline: 2px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .desktop-screenshot-choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .account-banner {
   background: var(--surface);
@@ -2494,103 +2571,43 @@ body {
   color: #f1f6ef;
   box-shadow: 0 20px 60px #0002;
 }
-.stage-scenery {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  background: linear-gradient(#788b83, #b9b49a 62%, #4d6760);
+.tour-media {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: 0 20px 60px #0002;
 }
-.scenery-sun {
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: #f6eac4bb;
-  left: 18%;
-  top: 21%;
-  box-shadow: 0 0 85px #eed8a544;
-}
-.scenery-ridge {
-  position: absolute;
-  width: 130%;
-  height: 70%;
-  border-radius: 45% 40% 0 0;
-  background: #314e46;
-  bottom: -25%;
-  left: -10%;
-  transform: rotate(-19deg);
-}
-.scenery-ridge.back {
-  bottom: -3%;
-  left: 25%;
-  background: #688174;
-  transform: rotate(32deg);
-}
-.demo-player-top {
-  position: absolute;
-  inset: 22px 23px auto;
+.tour-playback .desktop-screenshot-current { aspect-ratio: 1424 / 882; }
+.tour-subtitle-preview {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: 10px;
-  color: #fff;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 5px 0;
 }
-.demo-player-top > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.tour-subtitle-preview span {
+  padding: 3px 7px;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 650;
 }
-.demo-subtitle {
-  position: absolute;
-  bottom: 105px;
-  width: 100%;
-  text-align: center;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.5;
-  text-shadow: 0 2px 5px #000;
-}
-.demo-subtitle.serif {
-  font-family: Georgia, serif;
-  font-weight: 500;
-}
-.demo-controls {
-  position: absolute;
-  inset: auto 24px 75px;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  font-size: 9px;
-}
-.demo-timeline {
-  background: #ffffff45;
-  border-radius: 8px;
-  height: 3px;
-  flex: 1;
-  overflow: hidden;
-}
-.demo-timeline > i {
-  display: block;
-  width: 37%;
-  height: 100%;
-  background: #e5efcb;
-}
+.tour-subtitle-preview span.serif { font-family: Georgia, serif; }
 .subtitle-demo {
-  position: absolute;
-  bottom: 20px;
-  left: 22px;
-  right: 22px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 12px;
-  background: #182e23dc;
-  border: 1px solid #fff3;
-  color: #edf2e8;
-  border-radius: 13px;
-  font-size: 12px;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--text);
+  background: var(--raised);
+  font-size: .875rem;
 }
+.subtitle-demo:hover { border-color: var(--accent); }
 .tour-copy h3 {
   font-size: 34px;
   line-height: 1.2;
@@ -2690,82 +2707,6 @@ body {
   display: flex;
   justify-content: space-between;
   color: #e3e9df;
-}
-.stage-party {
-  display: flex;
-  padding: 18px;
-  align-items: center;
-  gap: 14px;
-  background: #20281f;
-}
-.party-mini {
-  width: 47%;
-  flex-shrink: 0;
-  padding: 15px;
-  background: #131b14;
-  border: 1px solid #fff1;
-  border-radius: 15px;
-  min-height: 75%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.party-mini > span {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 11px;
-}
-.party-bubbles {
-  padding: 20px 0;
-  display: grid;
-  gap: 18px;
-}
-.party-bubbles i {
-  font-size: 8px;
-  color: #b7c9a6;
-  font-style: normal;
-}
-.party-bubbles p {
-  color: #e6ebdf;
-  font-size: 10px;
-  background: #28352a;
-  padding: 10px;
-  border-radius: 1px 9px 9px 9px;
-  margin-top: 4px;
-}
-.party-bubbles > span {
-  font-size: 9px;
-  color: #a9c791;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.party-input {
-  border-top: 1px solid #fff2;
-  padding-top: 12px;
-  display: flex;
-  justify-content: space-between;
-  color: #a4ad9f;
-  font-size: 8px;
-}
-.party-screen {
-  position: relative;
-  border-radius: 14px;
-  aspect-ratio: 0.9;
-  overflow: hidden;
-  flex: 1;
-  display: grid;
-  place-items: center;
-}
-.party-screen > svg {
-  position: relative;
-}
-.party-screen .demo-timeline {
-  position: absolute;
-  bottom: 17px;
-  left: 14px;
-  right: 14px;
 }
 .home-personal {
   display: grid;
@@ -2875,7 +2816,7 @@ body {
 }
 .connection-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 15px;
 }
 .connection-tile {
@@ -2894,9 +2835,21 @@ body {
   transform: translateY(-3px);
   border-color: var(--accent);
 }
-.connection-tile > svg:first-child {
-  color: var(--accent);
+.connection-logo {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
+  border: 1px solid #ffffff22;
+  border-radius: 12px;
+  background: #13151d;
+}
+.connection-logo img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 .connection-tile > svg:last-child {
   margin-left: auto;
@@ -2907,8 +2860,9 @@ body {
   font-size: 15px;
 }
 .connection-tile p {
-  font-size: 10px;
+  font-size: .8125rem;
   margin-top: 6px;
+  overflow-wrap: anywhere;
 }
 .source-note {
   display: flex;
@@ -3029,9 +2983,6 @@ body {
   }
   .tour-copy h3 {
     font-size: 28px;
-  }
-  .demo-subtitle {
-    font-size: 19px;
   }
   .personal-preview {
     margin: 12px 9px;
@@ -3471,7 +3422,6 @@ body {
   .profile-switch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 700px) {
-  .hero-stage { overflow-x: clip; overflow-clip-margin: 12px; }
   .tour-stage { min-width: 0; width: 100%; aspect-ratio: auto; min-height: clamp(265px, 55vw, 340px); }
   .tour-tabs { width: 100%; border-radius: 20px; }
   .tour-tabs button { min-width: 0; padding-inline: 5px; min-height: 44px; }

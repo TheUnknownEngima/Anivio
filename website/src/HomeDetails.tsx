@@ -1,28 +1,21 @@
 import React, { useState } from "react";
 import {
   ArrowUpRight,
-  AudioLines,
   BookOpen,
   Check,
   ChevronRight,
-  Cloud,
   Download,
   ExternalLink,
   Headphones,
   Link2,
-  MessageCircle,
   MonitorPlay,
   Palette,
-  Play,
-  Settings2,
-  ShieldCheck,
-  SkipForward,
   Sparkles,
   Subtitles,
   Users,
 } from "lucide-react";
 
-import { PersonalSpacePreview } from "./DesktopShowcase";
+import { DesktopTourScreenshot, PersonalSpacePreview } from "./DesktopShowcase";
 
 const tours = {
   Playback: {
@@ -111,100 +104,45 @@ export default function HomeDetails() {
           role="tabpanel"
           aria-labelledby={`tour-${tour.replaceAll(" ", "-")}`}
         >
-          <div
-            className={`tour-stage stage-${tour === "Watch Party" ? "party" : tour.toLowerCase()}`}
-          >
-            {tour === "Playback" ? (
-              <>
-                <div className="stage-scenery">
-                  <span className="scenery-sun" />
-                  <span className="scenery-ridge back" />
-                  <span className="scenery-ridge front" />
+          {tour === "Reader" ? (
+            <div className="tour-stage stage-reader">
+              <div className="reader-paper">
+                <div className="manga-panel tall">
+                  <span />
+                  <BookOpen size={60} />
                 </div>
-                <div className="demo-player-top">
-                  <span>
-                    <Play size={13} fill="currentColor" /> Anivio player
-                  </span>
-                  <span>1080p · Anime4K</span>
+                <div className="manga-panel">
+                  <span />
                 </div>
-                <p className={`demo-subtitle ${serif ? "serif" : ""}`}>
-                  Every story starts
-                  <br />
-                  with a little curiosity.
-                </p>
-                <div className="demo-controls">
-                  <Play size={17} fill="currentColor" />
-                  <div className="demo-timeline">
-                    <i />
-                  </div>
-                  <span>08:42 / 24:00</span>
-                  <Subtitles size={17} />
+                <div className="manga-panel dark-panel">
+                  <Sparkles size={32} />
                 </div>
-                <button
-                  className="subtitle-demo"
-                  onClick={() => setSerif(!serif)}
-                >
-                  <Subtitles size={15} /> Try {serif ? "sans" : "serif"}{" "}
-                  subtitles <ChevronRight size={14} />
-                </button>
-              </>
-            ) : tour === "Reader" ? (
-              <>
-                <div className="reader-paper">
-                  <div className="manga-panel tall">
-                    <span />
-                    <BookOpen size={60} />
-                  </div>
-                  <div className="manga-panel">
-                    <span />
-                  </div>
-                  <div className="manga-panel dark-panel">
-                    <Sparkles size={32} />
-                  </div>
+              </div>
+              <div className="reader-position">
+                <BookOpen size={16} /> Chapter 12 <span>Page 8 of 24</span>
+              </div>
+              <span className="reader-direction">
+                Your pace. Your direction. <ChevronRight size={15} />
+              </span>
+            </div>
+          ) : (
+            <div className={tour === "Playback" ? "tour-media tour-playback" : "tour-media"}>
+              <DesktopTourScreenshot tour={tour} />
+              {tour === "Playback" && (
+                <div className="tour-subtitle-preview">
+                  <span className={serif ? "serif" : undefined}>Something new</span>
+                  <button
+                    type="button"
+                    className="subtitle-demo"
+                    onClick={() => setSerif((previous) => !previous)}
+                  >
+                    <Subtitles size={16} aria-hidden="true" />
+                    {serif ? "Try sans serif" : "Try serif subtitles"}
+                  </button>
                 </div>
-                <div className="reader-position">
-                  <BookOpen size={16} /> Chapter 12 <span>Page 8 of 24</span>
-                </div>
-                <span className="reader-direction">
-                  Your pace. Your direction. <ChevronRight size={15} />
-                </span>
-              </>
-            ) : (
-              <>
-                <div className="party-mini">
-                  <span>
-                    <Users size={16} /> Watch Party
-                  </span>
-                  <div className="party-bubbles">
-                    <div>
-                      <i>You</i>
-                      <p>Everyone ready?</p>
-                    </div>
-                    <div>
-                      <i>Friend</i>
-                      <p>One more episode ✨</p>
-                    </div>
-                    <span>
-                      <Check size={12} /> In sync
-                    </span>
-                  </div>
-                  <div className="party-input">
-                    Send a message <MessageCircle size={14} />
-                  </div>
-                </div>
-                <div className="party-screen">
-                  <div className="stage-scenery">
-                    <span className="scenery-sun" />
-                    <span className="scenery-ridge front" />
-                  </div>
-                  <Play size={35} fill="currentColor" />
-                  <div className="demo-timeline">
-                    <i />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           <div className="tour-copy">
             <div className="eyebrow">{current.label}</div>
             <h3>{current.title}</h3>
@@ -271,52 +209,57 @@ export default function HomeDetails() {
               "AniList",
               "Anime lists & progress",
               "https://anilist.co",
-              BookOpen,
+              "anilist.svg",
             ],
             [
               "TMDB",
               "Artwork, metadata & cast",
               "https://www.themoviedb.org",
-              MonitorPlay,
+              "tmdb.png",
             ],
             [
               "Trakt",
               "Watch tracking & collections",
               "https://trakt.tv",
-              Check,
+              "trakt.svg",
             ],
-            ["Simkl", "Watchlists & history", "https://simkl.com", Cloud],
+            ["Simkl", "Watchlists & history", "https://simkl.com", "simkl.svg"],
             [
               "Discord",
               "Your profile & watching activity",
               "https://discord.com",
-              MessageCircle,
+              "discord.svg",
             ],
             [
               "IntroDB",
               "Intro, recap & outro markers",
               "https://introdb.app",
-              SkipForward,
+              "introdb.png",
             ],
-          ].map(([name, description, url, Icon]) => {
-            const Symbol = Icon as typeof BookOpen;
-            return (
-              <a
-                key={String(name)}
-                className="connection-tile"
-                href={String(url)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Symbol size={25} />
-                <div>
-                  <b>{String(name)}</b>
-                  <p>{String(description)}</p>
-                </div>
-                <ExternalLink size={14} />
-              </a>
-            );
-          })}
+          ].map(([name, description, url, logo]) => (
+            <a
+              key={name}
+              className="connection-tile"
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="connection-logo">
+                <img
+                  src={`/integrations/${logo}`}
+                  alt=""
+                  width="28"
+                  height="28"
+                  loading="lazy"
+                />
+              </span>
+              <div>
+                <b>{name}</b>
+                <p>{description}</p>
+              </div>
+              <ExternalLink size={14} />
+            </a>
+          ))}
         </div>
         <div className="source-note">
           <Link2 size={21} />

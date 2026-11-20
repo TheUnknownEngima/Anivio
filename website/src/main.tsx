@@ -81,7 +81,7 @@ import { supporterGradient } from "./supporter-style";
 import { useProfileSelection, unlockProfile } from "./profile-selection";
 import { enrichMedia, presentMedia } from "./media-metadata.mjs";
 import HomeDetails from "./HomeDetails";
-import { DesktopDownload, DesktopFeaturePreviews } from "./DesktopShowcase";
+import { DesktopDownload, DesktopFeaturePreviews, DesktopScreenshots } from "./DesktopShowcase";
 import CommunityCollections, { CollectionReview } from "./CommunityCollections";
 import "./style.css";
 
@@ -527,7 +527,7 @@ function Home() {
         </div>
         <div className="feature-grid">
           <DesktopFeaturePreviews />
-          <article className="feature-card">
+          <article className="feature-card playback-feature">
             <div className="feature-art player-art">
               <div className="play-puck">
                 <Play fill="currentColor" />
@@ -545,16 +545,12 @@ function Home() {
             </div>
           </article>
           <article className="feature-card feature-large">
-            <div className="feature-art manga-art">
-              <span>01</span>
-              <BookOpen size={70} />
-              <span>02</span>
-            </div>
+            <DesktopScreenshots />
             <div className="feature-text">
               <h3>There’s a whole world between episodes.</h3>
               <p>
-                Go from watching anime to reading manga, with your chapter
-                progress and reader preferences in the same app.
+                Explore episode details, adjust video and subtitle settings,
+                or invite a friend to watch with you.
               </p>
             </div>
           </article>

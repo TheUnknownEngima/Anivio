@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Cloud, Download, Monitor, Smartphone, Users } from "lucide-react";
+import { Cloud, Download, Maximize2, Monitor, Smartphone, Users } from "lucide-react";
 
 const repo = "https://github.com/mdtahseen7/Anivio";
 const knownWindowsInstaller = `${repo}/releases/download/v0.1.31%2Bwindows/Anivio-Windows-x64.exe`;
@@ -63,6 +63,113 @@ export function DesktopFeaturePreviews() {
         </div>
       </article>
     </>
+  );
+}
+
+type DesktopScreenshot = {
+  label: string;
+  image: string;
+  alt: string;
+  width: number;
+  height: number;
+};
+
+const watchPartyScreenshot: DesktopScreenshot = {
+  label: "Watch Party",
+  image: "/showcase/desktop-watch-party.webp",
+  alt: "Black Clover playing beside the Watch Party panel and playback sharing controls.",
+  width: 1600,
+  height: 848,
+};
+
+const playbackScreenshot: DesktopScreenshot = {
+  label: "Playback",
+  image: "/showcase/desktop-playback.webp",
+  alt: "Black Clover playing in Anivio with subtitles, episode info, and video controls.",
+  width: 1424,
+  height: 882,
+};
+
+const desktopScreenshots: DesktopScreenshot[] = [
+  {
+    label: "Title details",
+    image: "/showcase/desktop-title-details.webp",
+    alt: "Black Clover’s title page with a backdrop, playback controls, and the Season 2 episode list.",
+    width: 1600,
+    height: 820,
+  },
+  {
+    label: "Video enhancement",
+    image: "/showcase/desktop-video-enhancement.webp",
+    alt: "Video enhancement menu with processing mode and output ceiling settings.",
+    width: 857,
+    height: 453,
+  },
+  watchPartyScreenshot,
+  {
+    label: "Subtitle styling",
+    image: "/showcase/desktop-subtitles.webp",
+    alt: "Subtitle settings with a font picker showing default, sans serif, serif, and monospace.",
+    width: 1265,
+    height: 749,
+  },
+];
+
+function ScreenshotFrame({ screenshot }: { screenshot: DesktopScreenshot }) {
+  return (
+    <a
+      className="desktop-screenshot-current"
+      href={screenshot.image}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Open full-size screenshot of ${screenshot.label}`}
+    >
+      <img
+        src={screenshot.image}
+        alt={screenshot.alt}
+        width={screenshot.width}
+        height={screenshot.height}
+        loading="lazy"
+        decoding="async"
+      />
+      <span className="desktop-screenshot-expand">
+        <Maximize2 size={17} aria-hidden="true" />
+      </span>
+    </a>
+  );
+}
+
+export function DesktopTourScreenshot({ tour }: { tour: "Playback" | "Watch Party" }) {
+  return <ScreenshotFrame screenshot={tour === "Playback" ? playbackScreenshot : watchPartyScreenshot} />;
+}
+
+export function DesktopScreenshots() {
+  const [selected, setSelected] = useState(0);
+  const screenshot = desktopScreenshots[selected];
+  return (
+    <div className="desktop-screenshots">
+      <ScreenshotFrame screenshot={screenshot} />
+      <div className="desktop-screenshot-choices" role="group" aria-label="Desktop screenshots">
+        {desktopScreenshots.map((shot, index) => (
+          <button
+            key={shot.image}
+            type="button"
+            aria-pressed={selected === index}
+            onClick={() => setSelected(index)}
+          >
+            <img
+              src={shot.image}
+              alt=""
+              width={shot.width}
+              height={shot.height}
+              loading="lazy"
+              decoding="async"
+            />
+            <span>{shot.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
