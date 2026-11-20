@@ -1,6 +1,9 @@
 <div align="center">
 
-  <img src="composeApp/src/commonMain/composeResources/drawable/app_logo_wordmark.png" alt="Anivio" width="320" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="website/public/wordmark.png" />
+    <img src="design/anivio-branding/anivio-av-wordmark-on-light.svg" alt="Anivio" width="320" />
+  </picture>
 
   <p>
     A free, open-source <strong>anime player for Android and Windows</strong>, with a manga reader on Android.
