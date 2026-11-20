@@ -1,4 +1,4 @@
-name: Anivio Android release
+name: Anivio release
 
 on:
   workflow_dispatch:
@@ -40,6 +40,10 @@ on:
         required: true
         default: true
         type: boolean
+      include_windows:
+        description: 'Build Windows x64 and attach it to the same release'
+        type: boolean
+        default: true
 
 # All version allocation and publication happens under one repository-wide lock.
 concurrency:
@@ -51,9 +55,16 @@ permissions:
 
 jobs:
   build:
+    name: Build Android
     runs-on: ubuntu-latest
     permissions:
-      contents: write # needed to publish the APK as a GitHub Release
+      contents: write # Version allocation must see existing drafts.
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      commit: ${{ steps.version.outputs.commit }}
+      windows_commit: ${{ steps.version.outputs.windows_commit }}
     steps:
       - name: Validate build and publication mode
         env:
@@ -70,6 +81,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Allocate version and generate changelog
         id: version
@@ -77,6 +89,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION_BUMP: ${{ inputs.bump }}
           IS_PRERELEASE: ${{ inputs.prerelease || inputs.build_type == 'debug' }}
+          INCLUDE_WINDOWS: ${{ inputs.include_windows && inputs.build_type == 'release' }}
         run: |
           mkdir -p build/release
           gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp | jq 'add // []' > build/release/releases.json
@@ -84,6 +97,10 @@ jobs:
             --releases build/release/releases.json --bump "${VERSION_BUMP}" \
             --prerelease "${IS_PRERELEASE}" --repository "${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
           cat build/release/notes.md >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$INCLUDE_WINDOWS" == true ]]; then
+            windows_commit="$(git rev-parse refs/remotes/origin/codex/windows-preview^{commit})"
+            echo "windows_commit=$windows_commit" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -210,18 +227,61 @@ jobs:
             build/release/notes.md
           if-no-files-found: error
 
-      - name: Publish versioned GitHub release
-        if: inputs.release_mode != 'artifact'
+  windows:
+    name: Build Windows
+    if: inputs.include_windows && inputs.build_type == 'release'
+    needs: build
+    uses: ./.github/workflows/windows-package.yml
+    secrets: inherit
+    with:
+      source_ref: ${{ needs.build.outputs.windows_commit }}
+      version: ${{ needs.build.outputs.version }}
+      version_code: ${{ needs.build.outputs.version_code }}
+
+  release:
+    name: Create the GitHub release
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.windows.result == 'success' || needs.windows.result == 'skipped') && inputs.release_mode != 'artifact' }}
+    needs: [build, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android packages and changelog
+        uses: actions/download-artifact@v8
+        with:
+          name: Anivio-${{ needs.build.outputs.version }}-${{ inputs.arch }}
+          path: android-release
+      - name: Download the Windows installer
+        if: needs.windows.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: Anivio-Windows-x64
+          path: windows-release
+      - name: Verify assets and create one release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
-          RELEASE_COMMIT: ${{ steps.version.outputs.commit }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.build.outputs.commit }}
           RELEASE_MODE: ${{ inputs.release_mode }}
           IS_PRERELEASE: ${{ inputs.prerelease }}
-          BUILD_TYPE: ${{ inputs.build_type }}
+          WINDOWS_COMMIT: ${{ needs.build.outputs.windows_commit }}
+          INCLUDE_WINDOWS: ${{ needs.windows.result == 'success' }}
         run: |
-          args=("$RELEASE_TAG" --target "$RELEASE_COMMIT" --title "Anivio $RELEASE_VERSION" --notes-file build/release/notes.md)
+          if [[ "$INCLUDE_WINDOWS" == true ]]; then
+            cp windows-release/Anivio-Windows-x64.exe android-release/assets/
+            tr -d '\r' < windows-release/SHA256SUMS.txt >> android-release/assets/SHA256SUMS.txt
+            jq --arg windows_commit "$WINDOWS_COMMIT" '. + {windows_commit: $windows_commit}' \
+              android-release/assets/release.json > release.json
+            mv release.json android-release/assets/release.json
+            {
+              printf '\n### Windows\n\n'
+              printf 'Download **Anivio-Windows-x64.exe** to install or upgrade Anivio for Windows.\n\n'
+              printf '[Windows source](https://github.com/%s/commit/%s)\n' "$GITHUB_REPOSITORY" "$WINDOWS_COMMIT"
+            } >> android-release/notes.md
+          fi
+          (cd android-release/assets && sha256sum --check SHA256SUMS.txt)
+          args=("$RELEASE_TAG" --target "$RELEASE_COMMIT" --title "Anivio $RELEASE_VERSION" --notes-file android-release/notes.md)
           if [[ "$RELEASE_MODE" == draft ]]; then args+=(--draft); fi
-          if [[ "$IS_PRERELEASE" == true || "$BUILD_TYPE" == debug ]]; then args+=(--prerelease --latest=false); else args+=(--latest); fi
-          gh release create --repo "$GITHUB_REPOSITORY" "${args[@]}" build/release/assets/*
+          if [[ "$IS_PRERELEASE" == true ]]; then args+=(--prerelease --latest=false); else args+=(--latest); fi
+          gh release create --repo "$GITHUB_REPOSITORY" "${args[@]}" android-release/assets/*

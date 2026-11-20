@@ -1,0 +1,66 @@
+name: Package Anivio for Windows
+
+on:
+  workflow_call:
+    inputs:
+      source_ref:
+        required: true
+        type: string
+      version:
+        type: string
+        default: ''
+      version_code:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_ref }}
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare WebView2 SDK
+        shell: pwsh
+        run: |
+          $version = '1.0.4078.44'
+          $sdk = Join-Path $env:RUNNER_TEMP 'webview2'
+          $archive = Join-Path $env:RUNNER_TEMP 'webview2.zip'
+          Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/$version/microsoft.web.webview2.$version.nupkg" -OutFile $archive
+          Expand-Archive $archive $sdk
+          "WEBVIEW2_SDK=$sdk" >> $env:GITHUB_ENV
+      - name: Build Anivio Setup
+        shell: pwsh
+        env:
+          ANIVIO_SUPABASE_URL: ${{ secrets.ANIVIO_SUPABASE_URL }}
+          ANIVIO_SUPABASE_ANON_KEY: ${{ secrets.ANIVIO_SUPABASE_ANON_KEY }}
+          DISCORD_APP_ID: ${{ secrets.DISCORD_APP_ID }}
+          ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
+          MAL_CLIENT_ID: ${{ secrets.MAL_CLIENT_ID }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_VERSION_CODE: ${{ inputs.version_code }}
+        run: ./composeApp/installer/windows/package.ps1
+      - name: Smoke test the installer
+        shell: pwsh
+        run: |
+          $setup = (Get-Item build/windows-release/Anivio-Windows-x64.exe).FullName
+          $process = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw "Anivio Setup exited with code $($process.ExitCode)." }
+          $app = Join-Path $env:ProgramFiles 'Anivio/Anivio.exe'
+          if (!(Test-Path -LiteralPath $app -PathType Leaf)) { throw 'Setup did not install Anivio.exe.' }
+      - name: Upload the Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: Anivio-Windows-x64
+          path: build/windows-release/
+          retention-days: 7
+          if-no-files-found: error
