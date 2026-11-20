@@ -64,7 +64,7 @@ export default function HomeDetails() {
   const current = tours[tour];
   return (
     <>
-      <section className="shell section home-tour" aria-labelledby="tour-title">
+      <section className="shell section home-tour" aria-labelledby="tour-title" data-reveal>
         <div className="section-heading">
           <div>
             <div className="eyebrow">A closer look</div>
@@ -99,6 +99,7 @@ export default function HomeDetails() {
           ))}
         </div>
         <div
+          key={tour}
           className="tour-panel"
           id="feature-tour-panel"
           role="tabpanel"
@@ -164,6 +165,7 @@ export default function HomeDetails() {
       <section
         className="shell section home-personal"
         aria-labelledby="personal-title"
+        data-reveal
       >
         <div className="personal-copy">
           <h2 id="personal-title">Your personal space</h2>
@@ -188,6 +190,7 @@ export default function HomeDetails() {
       <section
         className="shell section home-connections"
         aria-labelledby="connections-title"
+        data-reveal
       >
         <div className="section-heading">
           <div>
@@ -278,6 +281,7 @@ export default function HomeDetails() {
       <section
         className="shell section home-start"
         aria-labelledby="start-title"
+        data-reveal
       >
         <div className="section-heading">
           <div>
@@ -337,6 +341,7 @@ export default function HomeDetails() {
       <section
         className="shell section home-questions"
         aria-labelledby="questions-title"
+        data-reveal
       >
         <div>
           <div className="eyebrow">Before you settle in</div>

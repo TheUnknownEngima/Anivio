@@ -374,7 +374,7 @@ function App() {
             aria-label={light ? "Switch to dark mode" : "Switch to light mode"}
             onClick={() => setLight(!light)}
           >
-            {light ? <Moon size={18} /> : <Sun size={18} />}
+            {light ? <Moon size={18} className="theme-icon" /> : <Sun size={18} className="theme-icon" />}
           </button>
           <Link
             href={session ? "/account" : "/account/login"}
@@ -395,7 +395,7 @@ function App() {
           </button>
         </div>
       </header>
-      <main>
+      <main className="site-page" key={path}>
         {path === "/" ? (
           <Home />
         ) : isAccount ? (
@@ -432,6 +432,38 @@ function Loading() {
   );
 }
 function Home() {
+  useEffect(() => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reducedMotion.matches || !("IntersectionObserver" in window)) return;
+
+    const pending = new Set<Element>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const { target, isIntersecting } of entries) {
+        if (!isIntersecting) continue;
+        target.classList.remove("awaiting-reveal");
+        pending.delete(target);
+        observer.unobserve(target);
+      }
+    });
+    for (const section of document.querySelectorAll(".site-page [data-reveal]")) {
+      if (section.getBoundingClientRect().top <= window.innerHeight) continue;
+      pending.add(section);
+      section.classList.add("awaiting-reveal");
+      observer.observe(section);
+    }
+
+    const showEverything = () => {
+      observer.disconnect();
+      for (const section of pending) section.classList.remove("awaiting-reveal");
+      pending.clear();
+    };
+    reducedMotion.addEventListener("change", showEverything);
+    return () => {
+      reducedMotion.removeEventListener("change", showEverything);
+      showEverything();
+    };
+  }, []);
+
   return (
     <>
       <section className="hero shell">
@@ -510,7 +542,7 @@ function Home() {
           <Code2 size={17} /> Always open source
         </span>
       </div>
-      <section id="features" className="shell section">
+      <section id="features" className="shell section" data-reveal>
         <div className="section-heading">
           <div>
             <div className="eyebrow">A better place for your favourites</div>
@@ -557,7 +589,7 @@ function Home() {
         </div>
       </section>
       <HomeDetails />
-      <section className="account-banner shell">
+      <section className="account-banner shell" data-reveal>
         <div>
           <div className="eyebrow">Your corner of Anivio</div>
           <h2>
@@ -601,7 +633,7 @@ function Home() {
         </div>
       </section>
       <DesktopDownload />
-      <section className="open-source shell">
+      <section className="open-source shell" data-reveal>
         <div>
           <Code2 size={30} />
           <h3>
@@ -993,7 +1025,7 @@ function Dashboard({ session, hasSupporter }: { session: Session; hasSupporter: 
         {busy && !profiles.length ? (
           <Loading />
         ) : (
-          <div key={`${session.user.id}:${profileId}:${tab}`}>
+          <div className="dashboard-tab-content" key={`${session.user.id}:${profileId}:${tab}`}>
             {tab === "overview" ? (
               <Overview profiles={profiles} session={session} active={active} profileId={profileId} />
             ) : tab === "profiles" ? (

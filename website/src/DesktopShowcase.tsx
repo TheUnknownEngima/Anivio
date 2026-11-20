@@ -125,6 +125,7 @@ function ScreenshotFrame({ screenshot }: { screenshot: DesktopScreenshot }) {
       aria-label={`Open full-size screenshot of ${screenshot.label}`}
     >
       <img
+        key={screenshot.image}
         src={screenshot.image}
         alt={screenshot.alt}
         width={screenshot.width}
@@ -176,7 +177,7 @@ export function DesktopScreenshots() {
 export function DesktopDownload() {
   const windowsInstaller = useWindowsInstaller();
   return (
-    <section id="download" className="shell section download-platforms" aria-labelledby="download-title">
+    <section id="download" className="shell section download-platforms" aria-labelledby="download-title" data-reveal>
       <div className="section-heading">
         <div><h2 id="download-title">Download Anivio</h2></div>
         <p>Available for Android and Windows. Use the same account and profile to sync your progress.</p>
